@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN printf "float = float\nint = int" >> /usr/local/lib/python3.8/site-packages/numpy/__init__.py
 
+VOLUME ["/app/features/intent_recgnition/engine"]
+
 EXPOSE 1178
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "1178"]
