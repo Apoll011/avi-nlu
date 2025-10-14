@@ -1,43 +1,43 @@
-# Alex Base API
+# Avi NLU API
 
 ## Overview
-Alex Base API is a high-performance server designed to handle resource-intensive natural language processing operations for the Alex Home Assistant system. This server functions as the computational backbone for Alex, processing complex language understanding requests using the Snips NLU engine.
+**Avi NLU API** is a high-performance server dedicated to **Natural Language Understanding (NLU)** for the Avi ecosystem. It handles **intent recognition** for voice commands and structured inputs, serving as the computational core for Avi’s voice assistant.
+
+This API is designed to integrate seamlessly with **AECP-enabled devices** such as microphones, smart buttons, and other triggers, providing fast, reliable parsing of user intents.
 
 ## Features
-- **Natural Language Understanding**: Powered by Snips NLU for intent recognition in multiple languages
-- **Dictionary Services**: Word definition lookup with fuzzy matching capabilities
-- **User Management**: API endpoints for user creation, search, and management
-- **Multi-language Support**: Currently supports English and Portuguese
-- **Containerized Architecture**: Runs in a Docker container for easy deployment
-- **FastAPI Backend**: Modern, high-performance web framework for Python
-- **Low Latency**: Optimized for quick response times even for complex NLP operations
+- **Intent Recognition Only**: Focused on parsing user queries into structured intents and slots.
+- **Multi-language Support**: Supports English and Portuguese out-of-the-box.
+- **FastAPI Backend**: Lightweight, modern Python web framework for high-performance endpoints.
+- **Containerized Deployment**: Docker-ready for easy setup and distribution.
+- **Low Latency**: Optimized for real-time voice command processing.
 
 ## Requirements
-- Docker Engine (v19.03.0 or later recommended)
+- Docker Engine (v19.03.0+ recommended)
 - 2GB RAM minimum (4GB recommended for training models)
-- Network access to Alex Home Assistant instance
+- Network access to the **Avi Core Node** for full integration
 
 ## Installation
 
 ### Using Docker (Recommended)
 Build the Docker image:
 ```bash
-docker build -t alex-server .
+docker build -t avi-nlu-api .
 ```
 
 ### Manual Installation
-1. Clone the repository
+1. Clone the repository:
 ```bash
-git clone https://github.com/Apoll011/Alex-Base-API.git
-cd Alex-Base-API
+git clone https://github.com/Apoll011/avi-nlu.git
+cd Avi-NLU-API
 ```
 
-2. Install dependencies
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Download language models
+3. Download language models:
 ```bash
 python -m snips_nlu download-language-entities pt_pt
 python -m snips_nlu download-language-entities en
@@ -46,53 +46,37 @@ python -m snips_nlu download-language-entities en
 ## Usage
 
 ### Docker Deployment
-Run the server with the following command:
+Run the server:
 ```bash
-docker run -p 1178:1178 -v ./features/version_controller:/app/features/version_controller alex-server
+docker run -p 1178:1178 avi-nlu-api
 ```
-
 This will:
-- Map port 1178 on your host to port 1178 in the container
-- Mount the local version_controller directory to the container for persistent storage
-- Start the Alex Base API server with uvicorn
+- Map port `1178` on the host to port `1178` in the container.
+- Start the Avi NLU API server using **uvicorn**.
 
 ### Configuration
 The server configuration is stored in `config.py`:
-- Current version: 2.1.0
-- Default host: 0.0.0.0
-- Default port: 1178
+- Default host: `0.0.0.0`
+- Default port: `1178`
+- Model storage paths for intent recognition
 
-## NLP Components
+## NLU Components
 
 ### Intent Recognition
-The IntentKit class provides:
-- Intent recognition for user queries
-- Support for English and Portuguese
-- Training capabilities for custom intent recognition models
-- Persistent model storage
-
-### Dictionary Services
-The DictionaryKit class provides:
-- Word definition lookup
-- Fuzzy matching for misspelled words
-- Confidence scoring for approximate matches
-
-### User Management
-The UserKit class provides:
-- User creation, update, and deletion
-- User search by name
-- Tag-based user filtering with complex conditions
+The **IntentKit** handles:
+- Parsing text or audio input into structured intents
+- Slot extraction for multiple parameters
+- Support for multiple languages
+- Integration with AECP to receive raw audio or pre-parsed text from triggers
+- Persistent storage of trained intent models
 
 ## Project Structure
 ```
 ├── features/
-│   ├── dictionary/             # Dictionary data files
-│   │   └── language/           # Language-specific dictionaries
-│   ├── intent_recognition/     # Intent recognition models
-│   │   └── snips/              # Snips NLU models and datasets
-│   └── version_controller/     # Versioning information
+│   └── intent_recognition/     # Intent models and datasets
+│       └── snips/              # Snips NLU models
 ├── main.py                     # FastAPI application
-├── kit.py                      # Core NLP components
+├── kit.py                      # Core NLU components
 ├── config.py                   # Server configuration
 ├── Dockerfile                  # Docker configuration
 └── requirements.txt            # Python dependencies
@@ -100,22 +84,20 @@ The UserKit class provides:
 
 ## API Endpoints
 The server exposes FastAPI endpoints for:
-- Intent recognition
-- Dictionary lookups
-- User management
-- System status and version information
+- Receiving text or audio input and returning structured **intents and slots**
+- Checking server health and status
 
 ## Timezone
-The server operates in Atlantic/Cape_Verde timezone (UTC-1).
+The server operates in **Atlantic/Cape Verde timezone (UTC-1)**.
 
 ## Docker Image
-- Based on Python 3.8-slim
-- Custom patched version of snips_nlu utils
-- Pre-loaded with language models for English and Portuguese
+- Based on **Python 3.8-slim**
+- Pre-loaded with Snips NLU utilities
+- Includes models for English and Portuguese
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the **MIT License** – see the LICENSE file for details.
 
 ## Contact
-- GitHub: [@Apoll011](https://github.com/Apoll011)
-- Related Project: [Alex Home Assistant](https://github.com/Apoll011/Alex)
+- GitHub: [@Apoll011](https://github.com/YourUsername)
+- Related Project: [Avi Core Node](https://github.com/Apoll011/Avi-Core)
