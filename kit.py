@@ -1,8 +1,17 @@
 import io
 import os
 import json
+from pathlib import Path
+
 from snips_nlu import SnipsNLUEngine
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
+
+from collections import defaultdict
+
+from snips_nlu.__about__ import __model_version__, __version__
+from snips_nlu.common.utils import (json_string)
+from snips_nlu.resources import persist_resources
+
 
 class IntentKit:
     
