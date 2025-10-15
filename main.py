@@ -1,4 +1,3 @@
-import glob
 import os.path
 from datetime import datetime, timedelta
 
@@ -6,7 +5,6 @@ import lingua_franca
 import lingua_franca.parse
 import lingua_franca.format
 import uvicorn
-from starlette.responses import FileResponse, JSONResponse
 from models import *
 from kit import *
 from fastapi import FastAPI, File, Query, UploadFile
@@ -19,7 +17,7 @@ intentKit = IntentKit()
 app = FastAPI(title="Alex Server", version=__version__, description="Alex api server that handles complex and heavy tasks such an nlp user managements etc.", summary="Alex base server used for handling heavy functions", contact={"name": "Tiago Bernardo", "email": "tiagorobotik@gmail.com"}, license_info={"name": "Apache 2.0","url": "https://www.apache.org/licenses/LICENSE-2.0.html",}, on_startup=[intentKit.reuse])
 
 @app.get("/", name="Route")
-async def roote():
+async def route():
     return {"name": "Alex"}
 
 
@@ -28,10 +26,9 @@ async def alive():
     responce = {
         "on": True,
         "kit": {
-            "all_on": True and intentKit.loaded and  dictionaryKit.loaded,
+            "all_on": True and intentKit.loaded,
             "intent": intentKit.loaded,
         },
-        "users": len(userKit.users), 
         "lang": {
             "trained": list(filter(lambda e: e.endswith(".yaml"),os.listdir("./features/intent_recognition/snips/data/"))), 
             "instaled": list(filter(lambda e: e.endswith(".json"),os.listdir("./features/intent_recognition/snips/dataset/"))), 
@@ -318,9 +315,6 @@ def nice_relative_time(when, relative_to=None, lang=None):
     """
     return {"responce": lingua_franca.format.nice_relative_time(when, relative_to, lang)}
 
-def clean():
-    os.system("rm /home/pegasus/.alex_server")
-
 def main():
     print("Started server process")
     print("Waiting for application startup.")
@@ -332,4 +326,3 @@ if __name__ == "__main__":
         main()
     except Exception:
         pass
-    clean()
