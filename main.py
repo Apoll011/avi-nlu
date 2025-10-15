@@ -7,21 +7,21 @@ import lingua_franca.format
 import uvicorn
 from models import *
 from kit import *
-from fastapi import FastAPI, File, Query, UploadFile
+from fastapi import FastAPI, Query
 from config import __version__, api
 from typing_extensions import Annotated
 
 lingua_franca.load_languages(["en", "pt"])
 
 intentKit = IntentKit()
-app = FastAPI(title="Alex Server", version=__version__, description="Alex api server that handles complex and heavy tasks such an nlp user managements etc.", summary="Alex base server used for handling heavy functions", contact={"name": "Tiago Bernardo", "email": "tiagorobotik@gmail.com"}, license_info={"name": "Apache 2.0","url": "https://www.apache.org/licenses/LICENSE-2.0.html",}, on_startup=[intentKit.reuse])
+app = FastAPI(title="Avi Server", version=__version__, description="Avi api server that handles complex and heavy tasks such as nlp etc.", summary="Avi base server used for handling heavy functions", contact={"name": "Tiago Bernardo", "email": "tiagorobotik@gmail.com"}, license_info={"name": "Apache 2.0","url": "https://www.apache.org/licenses/LICENSE-2.0.html",}, on_startup=[intentKit.reuse])
 
 @app.get("/", name="Route")
 async def route():
-    return {"name": "Alex"}
+    return {"name": "Avi"}
 
 
-@app.get("/alex/alive", name="Check If Alive", description="This checks if alex is running and send the basic values")
+@app.get("/avi/alive", name="Check If Alive", description="This checks if Avi is running and send the basic values")
 async def alive():
     responce = {
         "on": True,
