@@ -18,24 +18,21 @@ app = FastAPI(title="Avi Server", version=__version__, description="Avi api serv
 
 @app.get("/", name="Route")
 async def route():
-    return {"name": "Avi"}
+    return {"response": {"name": "Avi"}}
 
 
 @app.get("/avi/alive", name="Check If Alive", description="This checks if Avi is running and send the basic values")
 async def alive():
-    responce = {
+    response = {
         "on": True,
         "kit": {
             "all_on": True and intentKit.loaded,
             "intent": intentKit.loaded,
         },
-        "lang": {
-            "trained": list(filter(lambda e: e.endswith(".yaml"),os.listdir("./features/intent_recognition/snips/data/"))), 
-            "instaled": list(filter(lambda e: e.endswith(".json"),os.listdir("./features/intent_recognition/snips/dataset/"))), 
-        },
+        "lang": list(map(lambda x: x.strip(".yaml") ,filter(lambda e: e.endswith(".yaml"),os.listdir("./features/intent_recognition/snips/data/")))),
         "version": __version__
         }
-    return responce
+    return {"response": response}
 
 @app.get("/intent_recognition/engine", name="Train or Reuse the Intent Recognition Engine")
 async def intent_train(type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE, lang: Lang = "en"):
@@ -44,24 +41,24 @@ async def intent_train(type: IntentRecongnitionEngineTrainType = IntentRecongnit
             intentKit.reuse(lang)
         else:
             intentKit.train(lang)
-        return {"responce": True, "action": type.value, "lang": lang}
+        return {"response": {"result": True, "action": type.value, "lang": lang}}
     except Exception as e:
-        return {"responce": False, "error": str(e)}
+        return {"response": False, "error": str(e)}
 
 @app.get("/intent_recognition/", name="Recognize intent from sentence", description="This will recognize the intent from a givin sentence and return the result parsed")
 async def intent_reconize(text: Annotated[str, Query(max_length=250, min_length=2)]):
     try:
-        return intentKit.parse(text)
+        return {"response": intentKit.parse(text)}
     except AttributeError:
         return {"error": "Engine not trained"}
 
 @app.get("/close")
 async def close():
-    return {"responce": True}
+    return {"response": True}
 
 @app.get("/lang")
 async def lang_base():
-    return {"responce": lingua_franca.get_supported_langs()}
+    return {"response": lingua_franca.get_supported_langs()}
 
 @app.get("/lang/parse/extract_numbers")
 def extract_numbers(text: str, short_scale: bool = True, ordinals: bool = False, lang: str = ''):
@@ -80,7 +77,7 @@ def extract_numbers(text: str, short_scale: bool = True, ordinals: bool = False,
         Returns:
             list: list of extracted numbers as floats, or empty list if none found
         """
-    return {"responce": lingua_franca.parse.extract_numbers(text, short_scale, ordinals, lang)}
+    return {"response": lingua_franca.parse.extract_numbers(text, short_scale, ordinals, lang)}
 
 @app.get("/lang/parse/extract_number")
 def extract_number(text, short_scale=True, ordinals=False, lang=''):
@@ -99,7 +96,7 @@ def extract_number(text, short_scale=True, ordinals=False, lang=''):
         (int, float or False): The number extracted or False if the input
                                text contains no numbers
     """
-    return {"responce": lingua_franca.parse.extract_number(text, short_scale, ordinals, lang)}
+    return {"response": lingua_franca.parse.extract_number(text, short_scale, ordinals, lang)}
 
 @app.get("/lang/parse/extract_duration")
 def extract_duration(text, lang=''):
@@ -131,7 +128,7 @@ def extract_duration(text, lang=''):
                     be None if no duration is found. The text returned
                     will have whitespace stripped from the ends.
     """
-    return {"responce": lingua_franca.parse.extract_duration(text, lang)}
+    return {"response": lingua_franca.parse.extract_duration(text, lang)}
 
 @app.get("/lang/parse/extract_datetime")
 def extract_datetime(text, lang=''):
@@ -180,7 +177,7 @@ def extract_datetime(text, lang=''):
         ... )
         None
     """
-    return {"responce": lingua_franca.parse.extract_datetime(text, lang=lang, anchorDate=None, default_time=None)}
+    return {"response": lingua_franca.parse.extract_datetime(text, lang=lang, anchorDate=None, default_time=None)}
 
 @app.get("/lang/parse/normalize")
 def normalize(text, lang='', remove_articles=True):
@@ -199,7 +196,7 @@ def normalize(text, lang='', remove_articles=True):
     Returns:
         (str): The normalized string.
     """
-    return {"responce": lingua_franca.parse.normalize(text, lang, remove_articles)}
+    return {"response": lingua_franca.parse.normalize(text, lang, remove_articles)}
 
 @app.get("/lang/parse/is_fractional")
 def is_fractional(input_str, short_scale=True, lang=''):
@@ -218,7 +215,7 @@ def is_fractional(input_str, short_scale=True, lang=''):
     Returns:
         (bool) or (float): False if not a fraction, otherwise the fraction
     """
-    return {"responce": lingua_franca.parse.is_fractional(input_str, short_scale, lang)}
+    return {"response": lingua_franca.parse.is_fractional(input_str, short_scale, lang)}
 
 @app.get("/lang/format/nice_number")
 def nice_number(number, lang='', speech=True, denominators=[]):
@@ -235,7 +232,7 @@ def nice_number(number, lang='', speech=True, denominators=[]):
     Returns:
         (str): The formatted string.
     """
-    return {"responce": lingua_franca.format.nice_number(float(number), lang, speech, list(map(lambda x: int(x), denominators)))}
+    return {"response": lingua_franca.format.nice_number(float(number), lang, speech, list(map(lambda x: int(x), denominators)))}
 
 @app.get("/lang/format/nice_time")
 def nice_time(dt=None, lang='', speech=True, use_24hour=False, use_ampm=False):
@@ -258,7 +255,7 @@ def nice_time(dt=None, lang='', speech=True, use_24hour=False, use_ampm=False):
         (str): The formatted time string
     """
     n = datetime.now() + timedelta(hours=1)
-    return {"responce": lingua_franca.format.nice_time(dt if dt is not None else n, lang, speech, use_24hour, use_ampm)}
+    return {"response": lingua_franca.format.nice_time(dt if dt is not None else n, lang, speech, use_24hour, use_ampm)}
 
 @app.get("/lang/format/pronounce_number")
 def pronounce_number(number: int, lang='', places=2):
@@ -275,7 +272,7 @@ def pronounce_number(number: int, lang='', places=2):
     Returns:
         (str): The pronounced number
     """
-    return {"responce": lingua_franca.format.pronounce_number(number, lang, places)}
+    return {"response": lingua_franca.format.pronounce_number(number, lang, places)}
 
 @app.get("/lang/format/nice_duration")
 def nice_duration(duration: int, lang='', speech=True):
@@ -294,7 +291,7 @@ def nice_duration(duration: int, lang='', speech=True):
     Returns:
         str: timespan as a string
     """
-    return {"responce": lingua_franca.format.nice_duration(duration, lang, speech)}
+    return {"response": lingua_franca.format.nice_duration(duration, lang, speech)}
 
 @app.get("/lang/format/nice_relative_time")
 def nice_relative_time(when, relative_to=None, lang=None):
@@ -313,7 +310,7 @@ def nice_relative_time(when, relative_to=None, lang=None):
     Returns:
         str: Relative description of the given time
     """
-    return {"responce": lingua_franca.format.nice_relative_time(when, relative_to, lang)}
+    return {"response": lingua_franca.format.nice_relative_time(when, relative_to, lang)}
 
 def main():
     print("Started server process")
