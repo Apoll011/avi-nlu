@@ -40,11 +40,6 @@ jobs:
         run: |
           pip config set global.trusted-host "resources.snips.ai"
 
-      - name: Download language entities
-        run: |
-          python -m snips_nlu download-language-entities pt_pt
-          python -m snips_nlu download-language-entities en
-
       - name: Copy utils.py to snips_nlu (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
@@ -67,6 +62,11 @@ jobs:
           } else {
             Write-Host "Warning: utils.py not found in repository"
           }
+
+      - name: Download language entities
+        run: |
+          python -m snips_nlu download-language-entities pt_pt
+          python -m snips_nlu download-language-entities en
 
       - name: Install requirements
         run: |
