@@ -1,0 +1,330 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: AviNLU-Linux
+            asset_name: AviNLU-Linux-x64
+          - os: windows-latest
+            artifact_name: AviNLU-Windows.exe
+            asset_name: AviNLU-Windows-x64.exe
+          - os: macos-latest
+            artifact_name: AviNLU-macOS
+            asset_name: AviNLU-macOS-x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir urllib3==1.26.6 snips-nlu fastapi uvicorn pyinstaller
+
+      - name: Configure pip trusted host
+        run: |
+          pip config set global.trusted-host "resources.snips.ai"
+
+      - name: Download language entities
+        run: |
+          python -m snips_nlu download-language-entities pt_pt
+          python -m snips_nlu download-language-entities en
+
+      - name: Install requirements
+        run: |
+          if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+        shell: bash
+
+      - name: Apply numpy patch
+        run: |
+          python -c "import numpy; f=open(numpy.__file__, 'a'); f.write('\nfloat = float\nint = int\nbool = bool\ncomplex = complex\n'); f.close(); print('Numpy patched')"
+        shell: bash
+
+      - name: Create server launcher
+        run: |
+          cat > server_launcher.py << 'EOF'
+          import sys
+          import os
+          import warnings
+
+          warnings.filterwarnings('ignore')
+
+          def apply_numpy_fix():
+              """Apply numpy compatibility fix for older code"""
+              try:
+                  import numpy as np
+                  
+                  if not hasattr(np, 'float'):
+                      np.float = float
+                      np.float_ = np.float64
+                      
+                  if not hasattr(np, 'int'):
+                      np.int = int
+                      np.int_ = np.int64
+                      
+                  if not hasattr(np, 'bool'):
+                      np.bool = bool
+                      
+                  if not hasattr(np, 'complex'):
+                      np.complex = complex
+                      
+                  print("[OK] Numpy compatibility patch applied")
+                  
+              except ImportError:
+                  print("[WARNING] Numpy not found, skipping patch")
+              except Exception as e:
+                  print(f"[WARNING] Could not apply numpy patch: {e}")
+
+          apply_numpy_fix()
+
+          os.environ['TZ'] = 'Atlantic/Cape_Verde'
+
+          if __name__ == "__main__":
+              import uvicorn
+              
+              try:
+                  from main import app
+                  print("=" * 50)
+                  print("Server starting on http://0.0.0.0:1178")
+                  print("Press Ctrl+C to stop")
+                  print("=" * 50)
+                  
+                  uvicorn.run(app, host="0.0.0.0", port=1178)
+                  
+              except Exception as e:
+                  print(f"[ERROR] Failed to start server: {e}")
+                  import traceback
+                  traceback.print_exc()
+                  input("Press Enter to exit...")
+          EOF
+        shell: bash
+
+      - name: Build with PyInstaller (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller \
+            --onefile \
+            --name "${{ matrix.artifact_name }}" \
+            --hidden-import=snips_nlu \
+            --hidden-import=snips_nlu.cli \
+            --hidden-import=snips_nlu.dataset \
+            --hidden-import=snips_nlu.intent_classifier \
+            --hidden-import=snips_nlu.intent_parser \
+            --hidden-import=snips_nlu.slot_filler \
+            --hidden-import=fastapi \
+            --hidden-import=uvicorn \
+            --hidden-import=uvicorn.lifespan \
+            --hidden-import=uvicorn.lifespan.on \
+            --hidden-import=uvicorn.protocols \
+            --hidden-import=uvicorn.protocols.http \
+            --hidden-import=uvicorn.protocols.websockets \
+            --hidden-import=uvicorn.loops \
+            --hidden-import=uvicorn.loops.auto \
+            --hidden-import=urllib3 \
+            --hidden-import=numpy \
+            --hidden-import=numpy.core \
+            --hidden-import=numpy.core._multiarray_umath \
+            --collect-all snips_nlu \
+            --collect-all fastapi \
+            --collect-all uvicorn \
+            --noupx \
+            server_launcher.py
+
+      - name: Build with PyInstaller (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller `
+            --onefile `
+            --name "${{ matrix.artifact_name }}" `
+            --hidden-import=snips_nlu `
+            --hidden-import=snips_nlu.cli `
+            --hidden-import=snips_nlu.dataset `
+            --hidden-import=snips_nlu.intent_classifier `
+            --hidden-import=snips_nlu.intent_parser `
+            --hidden-import=snips_nlu.slot_filler `
+            --hidden-import=fastapi `
+            --hidden-import=uvicorn `
+            --hidden-import=uvicorn.lifespan `
+            --hidden-import=uvicorn.lifespan.on `
+            --hidden-import=uvicorn.protocols `
+            --hidden-import=uvicorn.protocols.http `
+            --hidden-import=uvicorn.protocols.websockets `
+            --hidden-import=uvicorn.loops `
+            --hidden-import=uvicorn.loops.auto `
+            --hidden-import=urllib3 `
+            --hidden-import=numpy `
+            --hidden-import=numpy.core `
+            --hidden-import=numpy.core._multiarray_umath `
+            --collect-all snips_nlu `
+            --collect-all fastapi `
+            --collect-all uvicorn `
+            --noupx `
+            server_launcher.py
+
+      - name: Create features directory in dist
+        run: |
+          mkdir -p dist/features
+          if [ -d features ]; then cp -r features/* dist/features/ 2>/dev/null || true; fi
+        shell: bash
+
+      - name: Create README for distribution
+        run: |
+          cat > dist/README.txt << 'EOF'
+          Server Application
+          ==================
+
+          This is a FastAPI server application built with Python.
+
+          QUICK START:
+          ------------
+          1. Run the executable (AviNLU or AviNLU.exe)
+          2. Server will start on http://localhost:1178
+          3. Press Ctrl+C to stop the server
+
+          REQUIREMENTS:
+          -------------
+          - Ensure the 'features' folder is in the same directory as the executable
+          - Port 1178 must be available
+
+          TROUBLESHOOTING:
+          ----------------
+          - If the server fails to start, check that port 1178 is not in use
+          - Make sure all required data files are present
+          - Run from command line to see error messages
+
+          For support, please visit: https://github.com/YOUR_USERNAME/YOUR_REPO
+          EOF
+        shell: bash
+
+      - name: Package artifacts (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist
+          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} features/ README.txt
+          cd ..
+
+      - name: Package artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd dist
+          Compress-Archive -Path ${{ matrix.artifact_name }}, features/, README.txt -DestinationPath ${{ matrix.asset_name }}.zip
+          cd ..
+
+      - name: Upload artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}.tar.gz
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Server Application ${{ github.ref_name }}
+            
+            ### Downloads
+            - **Windows**: AviNLU-Windows-x64.zip
+            - **Linux**: AviNLU-Linux-x64.tar.gz
+            - **macOS**: AviNLU-macOS-x64.tar.gz
+            
+            ### Installation
+            1. Download the appropriate file for your operating system
+            2. Extract the archive
+            3. Run the executable
+            4. Server will start on http://localhost:1178
+            
+            ### What's Included
+            - Precompiled executable with all dependencies
+            - Numpy compatibility patches applied
+            - Language entities for PT_PT and EN
+            - Features directory structure
+            
+            ### Notes
+            - Python is NOT required to run these executables
+            - All dependencies are bundled
+            - Port 1178 must be available
+            
+            ### Changelog
+            See below for detailed changes in this release.
+          files: |
+            artifacts/AviNLU-Windows-x64/*.zip
+            artifacts/AviNLU-Linux-x64/*.tar.gz
+            artifacts/AviNLU-macOS-x64/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows Build
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/AviNLU-Windows-x64/AviNLU-Windows-x64.exe.zip
+          asset_name: AviNLU-Windows-x64.zip
+          asset_content_type: application/zip
+
+      - name: Upload Linux Build
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/AviNLU-Linux-x64/AviNLU-Linux-x64.tar.gz
+          asset_name: AviNLU-Linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS Build
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/AviNLU-macOS-x64/AviNLU-macOS-x64.tar.gz
+          asset_name: AviNLU-macOS-x64.tar.gz
+          asset_content_type: application/gzip
