@@ -155,20 +155,20 @@ jobs:
       - name: Build with PyInstaller (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          # We use specific collection for the core engine
-          pyinstaller \
-            --onefile \
-            --name "${{ matrix.artifact_name }}" \
-            --hidden-import=fastapi \
-            --hidden-import=uvicorn \
-            --hidden-import=snips_nlu_parsers \
-            --collect-all snips_nlu \
-            --collect-all snips_nlu_parsers \
-            --collect-all fastapi \
-            --collect-all uvicorn \
-            --copy-metadata snips-nlu \
-            --noupx \
-            server_launcher.py
+            pyinstaller \
+              --onefile \
+              --name "${{ matrix.artifact_name }}" \
+              --hidden-import=fastapi \
+              --hidden-import=uvicorn \
+              --hidden-import=snips_nlu_parsers \
+              --collect-all snips_nlu \
+              --collect-all snips_nlu_parsers \
+              --collect-submodules snips_nlu \
+              --copy-metadata snips-nlu \
+              --collect-all fastapi \
+              --collect-all uvicorn \
+              --noupx \
+              server_launcher.py
 
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
@@ -181,6 +181,7 @@ jobs:
                  "--collect-all fastapi " +
                  "--collect-all snips_nlu " +
                  "--collect-all snips_nlu_parsers " +
+                 "--collect-submodules snips_nlu " +
                  "--collect-all uvicorn " +
                  "--copy-metadata snips-nlu " +
                  "--noupx " +
