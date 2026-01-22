@@ -78,7 +78,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install setuptools-rust
-          pip install --no-cache-dir urllib3==1.26.6 snips-nlu fastapi uvicorn pyinstaller pyinstaller-hook-collects
+          pip install --no-cache-dir urllib3==1.26.6 snips-nlu fastapi uvicorn pyinstaller
           python -m snips_nlu download-language-entities pt_pt
           python -m snips_nlu download-language-entities en
 
