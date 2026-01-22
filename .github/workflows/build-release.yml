@@ -313,15 +313,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows Build
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/AviNLU-Windows-x64/AviNLU-Windows-x64.exe.zip
-          asset_name: AviNLU-Windows-x64.zip
-          asset_content_type: application/zip
+      #- name: Upload Windows Build
+      #  uses: actions/upload-release-asset@v1
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #  with:
+      #    upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #    asset_path: artifacts/AviNLU-Windows-x64/AviNLU-Windows-x64.exe.zip
+      #    asset_name: AviNLU-Windows-x64.zip
+      #    asset_content_type: application/zip
 
       - name: Upload Linux Build
         uses: actions/upload-release-asset@v1
@@ -333,12 +333,12 @@ jobs:
           asset_name: AviNLU-Linux-x64.tar.gz
           asset_content_type: application/gzip
 
-      - name: Upload macOS Build
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/AviNLU-macOS-x64/AviNLU-macOS-x64.tar.gz
-          asset_name: AviNLU-macOS-x64.tar.gz
-          asset_content_type: application/gzip
+      #- name: Upload macOS Build
+      #  uses: actions/upload-release-asset@v1
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #  with:
+      #    upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #    asset_path: artifacts/AviNLU-macOS-x64/AviNLU-macOS-x64.tar.gz
+      #    asset_name: AviNLU-macOS-x64.tar.gz
+      #    asset_content_type: application/gzip
