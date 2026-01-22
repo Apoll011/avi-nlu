@@ -18,9 +18,9 @@ jobs:
           - os: windows-latest
             artifact_name: AviNLU-Windows.exe
             asset_name: AviNLU-Windows-x64.exe
-          - os: macos-latest
-            artifact_name: AviNLU-macOS
-            asset_name: AviNLU-macOS-x64
+         # - os: macos-latest
+         #   artifact_name: AviNLU-macOS
+         #   asset_name: AviNLU-macOS-x64
 
     steps:
       - name: Checkout code
@@ -140,15 +140,12 @@ jobs:
       - name: Build with PyInstaller (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
+          # Find all installed snips_nlu packages
+          SNIPS_PACKAGES=$(python -c "import pkg_resources; print(' '.join(['--collect-all ' + d.project_name for d in pkg_resources.working_set if d.project_name.startswith('snips-nlu') or d.project_name.startswith('snips_nlu')]))")
+          
           pyinstaller \
             --onefile \
             --name "${{ matrix.artifact_name }}" \
-            --hidden-import=snips_nlu \
-            --hidden-import=snips_nlu.cli \
-            --hidden-import=snips_nlu.dataset \
-            --hidden-import=snips_nlu.intent_classifier \
-            --hidden-import=snips_nlu.intent_parser \
-            --hidden-import=snips_nlu.slot_filler \
             --hidden-import=fastapi \
             --hidden-import=uvicorn \
             --hidden-import=uvicorn.lifespan \
@@ -162,7 +159,7 @@ jobs:
             --hidden-import=numpy \
             --hidden-import=numpy.core \
             --hidden-import=numpy.core._multiarray_umath \
-            --collect-all snips_nlu \
+            $SNIPS_PACKAGES \
             --collect-all fastapi \
             --collect-all uvicorn \
             --noupx \
@@ -171,33 +168,30 @@ jobs:
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
         run: |
-          pyinstaller `
-            --onefile `
-            --name "${{ matrix.artifact_name }}" `
-            --hidden-import=snips_nlu `
-            --hidden-import=snips_nlu.cli `
-            --hidden-import=snips_nlu.dataset `
-            --hidden-import=snips_nlu.intent_classifier `
-            --hidden-import=snips_nlu.intent_parser `
-            --hidden-import=snips_nlu.slot_filler `
-            --hidden-import=fastapi `
-            --hidden-import=uvicorn `
-            --hidden-import=uvicorn.lifespan `
-            --hidden-import=uvicorn.lifespan.on `
-            --hidden-import=uvicorn.protocols `
-            --hidden-import=uvicorn.protocols.http `
-            --hidden-import=uvicorn.protocols.websockets `
-            --hidden-import=uvicorn.loops `
-            --hidden-import=uvicorn.loops.auto `
-            --hidden-import=urllib3 `
-            --hidden-import=numpy `
-            --hidden-import=numpy.core `
-            --hidden-import=numpy.core._multiarray_umath `
-            --collect-all snips_nlu `
-            --collect-all fastapi `
-            --collect-all uvicorn `
-            --noupx `
-            server_launcher.py
+          # Find all installed snips_nlu packages
+          $SNIPS_PACKAGES = python -c "import pkg_resources; print(' '.join(['--collect-all ' + d.project_name.replace('-', '_') for d in pkg_resources.working_set if d.project_name.startswith('snips-nlu') or d.project_name.startswith('snips_nlu')]))"
+          
+          $cmd = "pyinstaller --onefile --name `"${{ matrix.artifact_name }}`" " +
+                 "--hidden-import=fastapi " +
+                 "--hidden-import=uvicorn " +
+                 "--hidden-import=uvicorn.lifespan " +
+                 "--hidden-import=uvicorn.lifespan.on " +
+                 "--hidden-import=uvicorn.protocols " +
+                 "--hidden-import=uvicorn.protocols.http " +
+                 "--hidden-import=uvicorn.protocols.websockets " +
+                 "--hidden-import=uvicorn.loops " +
+                 "--hidden-import=uvicorn.loops.auto " +
+                 "--hidden-import=urllib3 " +
+                 "--hidden-import=numpy " +
+                 "--hidden-import=numpy.core " +
+                 "--hidden-import=numpy.core._multiarray_umath " +
+                 "$SNIPS_PACKAGES " +
+                 "--collect-all fastapi " +
+                 "--collect-all uvicorn " +
+                 "--noupx " +
+                 "server_launcher.py"
+          
+          Invoke-Expression $cmd
 
       - name: Create features directory in dist
         run: |
