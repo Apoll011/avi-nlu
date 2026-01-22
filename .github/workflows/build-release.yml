@@ -16,12 +16,12 @@ jobs:
           - os: ubuntu-latest
             artifact_name: AviNLU-Linux
             asset_name: AviNLU-Linux-x64
-          - os: windows-latest
-            artifact_name: AviNLU-Windows.exe
-            asset_name: AviNLU-Windows-x64.exe
-          - os: macos-latest
-            artifact_name: AviNLU-macOS
-            asset_name: AviNLU-macOS-x64
+          #- os: windows-latest
+          #  artifact_name: AviNLU-Windows.exe
+          #  asset_name: AviNLU-Windows-x64.exe
+          #- os: macos-latest
+          #  artifact_name: AviNLU-macOS
+          #  asset_name: AviNLU-macOS-x64
 
     steps:
       - name: Checkout code
