@@ -45,6 +45,29 @@ jobs:
           python -m snips_nlu download-language-entities pt_pt
           python -m snips_nlu download-language-entities en
 
+      - name: Copy utils.py to snips_nlu (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          SNIPS_PATH=$(python -c "import snips_nlu; import os; print(os.path.dirname(snips_nlu.__file__))")
+          if [ -f utils.py ]; then
+            cp utils.py "$SNIPS_PATH/cli/utils.py"
+            echo "utils.py copied to $SNIPS_PATH/cli/utils.py"
+          else
+            echo "Warning: utils.py not found in repository"
+          fi
+        shell: bash
+
+      - name: Copy utils.py to snips_nlu (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $SNIPS_PATH = python -c "import snips_nlu; import os; print(os.path.dirname(snips_nlu.__file__))"
+          if (Test-Path "utils.py") {
+            Copy-Item "utils.py" "$SNIPS_PATH\cli\utils.py" -Force
+            Write-Host "utils.py copied to $SNIPS_PATH\cli\utils.py"
+          } else {
+            Write-Host "Warning: utils.py not found in repository"
+          }
+
       - name: Install requirements
         run: |
           if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
@@ -263,6 +286,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
+          draft: false
           prerelease: false
           generate_release_notes: true
           body: |
