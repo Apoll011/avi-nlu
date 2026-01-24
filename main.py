@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import typer
 import os
 import lingua_franca
 import lingua_franca.parse
@@ -9,6 +10,7 @@ from src.kit import IntentKit
 from fastapi import FastAPI, Query
 from src.config import __version__, api, intents_data_folder
 from typing_extensions import Annotated
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 lingua_franca.load_languages(["en", "pt"])
 
@@ -28,6 +30,8 @@ app = FastAPI(
     },
     on_startup=[intentKit.reuse],
 )
+
+cli = typer.Typer()
 
 
 @app.get("/", name="Route")
@@ -387,17 +391,46 @@ def nice_relative_time(when, relative_to=None, lang=None):
     }
 
 
-def main():
+@cli.command()
+def train(
+    lang: Annotated[
+        Lang, typer.Argument(help="The language to train the engine with")
+    ] = Lang.EN,
+):
+    """
+    Trains the engine on a specified language and saves the engine on the engine data folder
+    """
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Training...", total=None)
+        intentKit.train(lang)
+
+
+@cli.command()
+def serve(
+    host: Annotated[str, typer.Argument(help="THe host IP.")] = "0.0.0.0",
+    port: Annotated[
+        str,
+        typer.Argument(
+            help="The server port. Unless that you edit the port on Avi too, dont change this."
+        ),
+    ] = "1178",
+):
+    """
+    Starts a web api for AVI NLU
+    """
     import uvicorn
 
     try:
         print("=" * 50)
-        print("App starting on http://0.0.0.0:1178")
         print("Press Ctrl+C to stop")
-        print("=" * 50)
         print("Waiting for application startup.")
-        print(f"App started on http://{api['HOST']}:{api['PORT']}")
-        uvicorn.run(app, host=api["HOST"], port=api["PORT"], log_level="warning")
+        print(f"App started on http://{host}:{port}")
+        print("=" * 50)
+        uvicorn.run(app, host=host, port=port, log_level="warning")
 
     except Exception as e:
         print(f"[ERROR] Failed to start server: {e}")
@@ -407,8 +440,14 @@ def main():
         input("Press Enter to exit...")
 
 
+@cli.command()
+def version():
+    """
+    The current Avi Version
+    """
+    print("AVI NLU v" + __version__)
+    print("Made by Tiago Inês")
+
+
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        pass
+    cli()
