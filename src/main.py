@@ -5,7 +5,7 @@ import lingua_franca
 import lingua_franca.parse
 import lingua_franca.format
 import uvicorn
-from .models import *
+from .models import IntentRecongnitionEngineTrainType, Lang
 from .kit import IntentKit
 from fastapi import FastAPI, Query
 from src.config import __version__, api, intents_data_folder
