@@ -56,8 +56,22 @@ cat > dist/README.txt << 'EOF'
 AviNLU Server
 =============
 
-Run the executable to start the server:
-http://localhost:1178
+1. Run the executable (AviNLU or AviNLU.exe)
+2. Server will start on http://localhost:1178
+3. Press Ctrl+C to stop the server
+
+REQUIREMENTS:
+-------------
+- Ensure the 'features' folder is in the same directory as the executable
+- Port 1178 must be available
+
+TROUBLESHOOTING:
+----------------
+- If the server fails to start, check that port 1178 is not in use
+- Make sure all required data files are present
+- Run from command line to see error messages
+
+For support, please visit: https://github.com/apoll011/avi-nlu
 
 Notes:
 - Python not required at runtime
@@ -65,14 +79,8 @@ Notes:
 - Port 1178 must be free
 EOF
 
-# ------------------------------------------------------------------
-# 6. Package
-# ------------------------------------------------------------------
-cd dist
-tar -czf "${ASSET_NAME}.tar.gz" "$ARTIFACT_NAME" features README.txt
-cd ..
 
 echo "== Build complete =="
-echo "Output: dist/${ASSET_NAME}.tar.gz"
+echo "Output: dist/${ASSET_NAME}"
 
 
