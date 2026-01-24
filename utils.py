@@ -15,8 +15,10 @@ from snips_nlu.common.utils import parse_version
 try:
     from importlib import invalidate_caches
 except ImportError:
+
     def invalidate_caches():
         from time import sleep
+
         sleep(1)
 
 
@@ -45,8 +47,7 @@ def pretty_print(*texts, **kwargs):
     level = kwargs.get("level", PrettyPrintLevel.INFO)
     title_color = _color_from_level(level)
     if title:
-        title = "\033[{color}m{title}\033[0m\n".format(title=title,
-                                                       color=title_color)
+        title = "\033[{color}m{title}\033[0m\n".format(title=title, color=title_color)
     else:
         title = ""
     message = "\n\n".join([text for text in texts])
@@ -71,48 +72,67 @@ def _color_from_level(level):
 def get_json(url, desc):
     r = requests.get(url, verify=False)
     if r.status_code != 200:
-        raise OSError("%s: Received status code %s when fetching the resource"
-                      % (desc, r.status_code))
+        raise OSError(
+            "%s: Received status code %s when fetching the resource"
+            % (desc, r.status_code)
+        )
     return r.json()
 
 
 def get_compatibility():
     version = __about__.__version__
     parsed_version = parse_version(version)
-    minor_version = "%s.%s" % (
-        parsed_version["major"], parsed_version["minor"])
+    minor_version = "%s.%s" % (parsed_version["major"], parsed_version["minor"])
     table = get_json(__about__.__compatibility__, "Compatibility table")
     nlu_table = table["snips-nlu"]
     compatibility = nlu_table.get(version, nlu_table.get(minor_version))
     if compatibility is None:
-        pretty_print("No compatible resources found for version %s" % version,
-                     title="Resources compatibility error", exits=1,
-                     level=PrettyPrintLevel.ERROR)
+        pretty_print(
+            "No compatible resources found for version %s" % version,
+            title="Resources compatibility error",
+            exits=1,
+            level=PrettyPrintLevel.ERROR,
+        )
     return compatibility
 
 
 def get_resources_version(resource_fullname, resource_alias, compatibility):
     if resource_fullname not in compatibility:
-        pretty_print("No compatible resources found for '%s'" % resource_alias,
-                     title="Resources compatibility error", exits=1,
-                     level=PrettyPrintLevel.ERROR)
+        pretty_print(
+            "No compatible resources found for '%s'" % resource_alias,
+            title="Resources compatibility error",
+            exits=1,
+            level=PrettyPrintLevel.ERROR,
+        )
     return compatibility[resource_fullname][0]
 
 
 def install_remote_package(download_url, user_pip_args=None):
-    pip_args = ['--no-cache-dir', '--no-deps']
+    pip_args = ["--no-cache-dir", "--no-deps"]
     if user_pip_args:
         pip_args.extend(user_pip_args)
-    os.environ['PIP_NO_SSL_VERIFY'] = '1'
-    cmd = [
-              sys.executable, '-m', 'pip', 'install',
-              '--trusted-host', 'resources.snips.ai',
-              '--trusted-host', 'pypi.org',
-              '--trusted-host', 'pypi.python.org',
-              '--trusted-host', 'files.pythonhosted.org',
-              '--no-cache-dir', '--disable-pip-version-check'
-          ] + pip_args + [download_url]
-    os.environ['PIP_NO_SSL_VERIFY'] = '0'
+    os.environ["PIP_NO_SSL_VERIFY"] = "1"
+    cmd = (
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--trusted-host",
+            "resources.snips.ai",
+            "--trusted-host",
+            "pypi.org",
+            "--trusted-host",
+            "pypi.python.org",
+            "--trusted-host",
+            "files.pythonhosted.org",
+            "--no-cache-dir",
+            "--disable-pip-version-check",
+        ]
+        + pip_args
+        + [download_url]
+    )
+    os.environ["PIP_NO_SSL_VERIFY"] = "0"
     exit_code = subprocess.call(cmd, env=os.environ.copy())
     # Don't forget to invalidate caches after dynamically installing modules
     # https://docs.python.org/3/library/importlib.html#importlib.import_module
@@ -127,8 +147,10 @@ def check_resources_alias(resource_name, shortcuts):
         pretty_print(
             "No resources found for {r}, available resource aliases are "
             "(case insensitive):\n{a}".format(r=resource_name, a=aliases),
-            title="Unknown language resources", exits=1,
-            level=PrettyPrintLevel.ERROR)
+            title="Unknown language resources",
+            exits=1,
+            level=PrettyPrintLevel.ERROR,
+        )
 
 
 def set_nlu_logger(level=logging.INFO):

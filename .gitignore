@@ -11,3 +11,8 @@ en_full.json
 output.log
 version_controller/
 Editor
+build/
+dist/
+*.spec
+text.tmp
+

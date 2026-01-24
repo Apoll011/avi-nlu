@@ -18,16 +18,27 @@ fi
 
 rm -rf build dist
 
+SNIPS_PACKAGES=$(ls .venv/lib/python3.8/site-packages | grep '^snips_nlu' | grep -v 'dist-info' | grep -v '__pycache__' || true)
+
+COLLECT_FLAGS=""
+METADATA_FLAGS="--copy-metadata snips-nlu"
+
+for pkg in $SNIPS_PACKAGES; do
+    COLLECT_FLAGS="$COLLECT_FLAGS --collect-all $pkg"
+    # We copy metadata for both hyphenated and underscored versions to be safe
+done
+
 pyinstaller \
   --onefile \
   --name "$ARTIFACT_NAME" \
-  --hidden-import=fastapi \
-  --hidden-import=uvicorn \
+  --hidden-import=snips_nlu_utils \
   --hidden-import=snips_nlu_parsers \
-  --collect-all snips_nlu \
-  --collect-all snips_nlu_parsers \
-  --collect-submodules snips_nlu \
-  --copy-metadata snips-nlu \
+  --hidden-import=snips_nlu_utils.string \
+  --hidden-import=snips_nlu_utils.utils \
+  $COLLECT_FLAGS \
+  $METADATA_FLAGS \
+  --collect-submodules snips_nlu_utils \
+  --collect-submodules snips_nlu_parsers \
   --collect-all fastapi \
   --collect-all uvicorn \
   --noupx \
@@ -63,4 +74,5 @@ cd ..
 
 echo "== Build complete =="
 echo "Output: dist/${ASSET_NAME}.tar.gz"
+
 
