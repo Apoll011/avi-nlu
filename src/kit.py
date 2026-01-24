@@ -4,7 +4,7 @@ import json
 
 from snips_nlu import SnipsNLUEngine
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
-from .config import intents_data_folder
+from src.config import intents_data_folder
 
 
 class IntentKit:

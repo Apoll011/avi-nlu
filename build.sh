@@ -8,14 +8,6 @@ echo "== AviNLU build (Linux, Py3.8) =="
 
 source .venv/bin/activate
 
-# ------------------------------------------------------------------
-# Build (server_launcher.py must exist)
-# ------------------------------------------------------------------
-if [ ! -f server_launcher.py ]; then
-  echo "ERROR: server_launcher.py not found"
-  exit 1
-fi
-
 rm -rf build dist
 
 SNIPS_PACKAGES=$(ls .venv/lib/python3.8/site-packages | grep '^snips_nlu' | grep -v 'dist-info' | grep -v '__pycache__' || true)
@@ -41,8 +33,10 @@ pyinstaller \
   --collect-submodules snips_nlu_parsers \
   --collect-all fastapi \
   --collect-all uvicorn \
+  --collect-all lingua_franca \
   --noupx \
-  server_launcher.py
+  --paths=./src \
+  main.py
 
 # ------------------------------------------------------------------
 # 5. Bundle runtime data
