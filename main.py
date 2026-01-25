@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
 
+from snips_nlu.dataset import Dataset, Intent
+from snips_nlu.dataset.entity import Entity
 import typer
 import os
 import lingua_franca
 import lingua_franca.parse
 import lingua_franca.format
-from src.models import IntentRecongnitionEngineTrainType, Lang
+from src.models import Data, IntentRecongnitionEngineTrainType, Lang
 from src.kit import IntentKit
 from fastapi import FastAPI, Query
 from src.config import __version__, intents_data_folder
@@ -28,7 +30,6 @@ app = FastAPI(
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    on_startup=[intentKit.reuse],
 )
 
 cli = typer.Typer()
@@ -51,15 +52,6 @@ async def alive():
             "all_on": True and intentKit.loaded,
             "intent": intentKit.loaded,
         },
-        "lang": list(
-            map(
-                lambda x: x.strip(".yaml"),
-                filter(
-                    lambda e: e.endswith(".yaml"),
-                    os.listdir(f"{intents_data_folder}/data/"),
-                ),
-            )
-        ),
         "version": __version__,
     }
     return {"response": response}
@@ -70,16 +62,52 @@ async def alive():
 )
 async def intent_train(
     type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE,
-    lang: Lang = "en",
 ):
     try:
         if type == IntentRecongnitionEngineTrainType.REUSE:
-            intentKit.reuse(lang)
+            intentKit.reuse()
         else:
-            intentKit.train(lang)
-        return {"response": {"result": True, "action": type.value, "lang": lang}}
+            intentKit.train()
+        return {
+            "response": {"result": True, "action": type.value, "lang": intentKit.lang}
+        }
     except Exception as e:
         return {"response": False, "error": str(e)}
+
+
+def load(data: Data):
+    intents = []
+    entities = []
+    for doc in data.data:
+        doc_type = doc.type
+        if doc_type == "entity":
+            entities.append(Entity.from_yaml(doc.as_dict()))
+        elif doc_type == "intent":
+            intents.append(Intent.from_yaml(doc.as_dict()))
+    return intents, entities
+
+
+def convert(d: Data) -> Dataset:
+    intents, entities = load(d)
+    return Dataset(d.language, intents, entities)
+
+
+@app.post(
+    "/intent_recognition/populate",
+    name="Define the intent and entities",
+    description="Set the current lang dataset",
+)
+async def intent_populate(dataset: Data):
+    try:
+        if dataset.language != intentKit.lang:
+            return {
+                "error": f"Wrong Language Dataset expected, {intentKit.lang}",
+                "lang": intentKit.lang,
+            }
+        intentKit.populate(convert(dataset))
+        return {"response": True}
+    except AttributeError:
+        return {"error": "Engine not trained"}
 
 
 @app.get(
