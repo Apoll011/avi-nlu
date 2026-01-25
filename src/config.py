@@ -1,4 +1,3 @@
 __version__ = "1.5.2"
-intents_data_folder = "./features/intent_recognition/snips"
-engine_base_path = f"{intents_data_folder}/engine/"
+engine_base_path = f"./engine/"
 api = {"HOST": "0.0.0.0", "PORT": 1178}

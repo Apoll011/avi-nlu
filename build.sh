@@ -38,13 +38,6 @@ pyinstaller \
   --paths=./src \
   main.py
 
-# ------------------------------------------------------------------
-# 5. Bundle runtime data
-# ------------------------------------------------------------------
-mkdir -p dist/features
-if [ -d features ]; then
-  cp -r features/* dist/features/ || true
-fi
 
 cat > dist/README.txt << 'EOF'
 AviNLU Server
