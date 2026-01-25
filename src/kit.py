@@ -42,9 +42,7 @@ class IntentKit:
         )
         self.engine.fit(self.data)
 
-        if not os.path.exists(self.engine_path):
-            os.makedirs(self.engine_path)
-        else:
+        if os.path.exists(self.engine_path):
             os.system(f"rm -rf {self.engine_path}/")
 
         self.engine.persist(self.engine_path)
