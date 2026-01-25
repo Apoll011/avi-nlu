@@ -5,7 +5,7 @@ from snips_nlu import SnipsNLUEngine
 from snips_nlu.dataset import Dataset
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
 from src.models import Lang
-from src.config import intents_data_folder
+from src.config import engine_base_path
 
 
 class IntentKit:
@@ -17,7 +17,7 @@ class IntentKit:
 
     def __init__(self, lang: Lang = Lang.EN) -> None:
         self.lang = lang
-        self.engine_path = f"{intents_data_folder}/engine/{lang}"
+        self.engine_path = f"{engine_base_path}/{lang}"
 
     def populate(self, data: Dataset):
         self.data = data

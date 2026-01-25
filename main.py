@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 from snips_nlu.dataset import Dataset, Intent
 from snips_nlu.dataset.entity import Entity
@@ -9,17 +10,16 @@ import lingua_franca.parse
 import lingua_franca.format
 from src.models import Data, IntentRecongnitionEngineTrainType, Lang
 from src.kit import IntentKit
-from fastapi import FastAPI, Query
-from src.config import __version__, intents_data_folder
+from fastapi import Depends, FastAPI, Query, Request
+from src.config import __version__, engine_base_path
 from typing_extensions import Annotated
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 lingua_franca.load_languages(["en", "pt"])
 
-if not os.path.exists(intents_data_folder):
-    os.makedirs(intents_data_folder)
+if not os.path.exists(engine_base_path):
+    os.makedirs(engine_base_path)
 
-intentKit = IntentKit()
 app = FastAPI(
     title="Avi Server",
     version=__version__,
@@ -35,6 +35,10 @@ app = FastAPI(
 cli = typer.Typer()
 
 
+def get_kit(request: Request) -> IntentKit:
+    return request.app.state.intentKit
+
+
 @app.get("/", name="Route")
 async def route():
     return {"response": {"name": "Avi"}}
@@ -45,7 +49,7 @@ async def route():
     name="Check If Alive",
     description="This checks if Avi is running and send the basic values",
 )
-async def alive():
+async def alive(intentKit=Depends(get_kit)):
     response = {
         "on": True,
         "kit": {
@@ -62,6 +66,7 @@ async def alive():
 )
 async def intent_train(
     type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE,
+    intentKit=Depends(get_kit),
 ):
     try:
         if type == IntentRecongnitionEngineTrainType.REUSE:
@@ -97,7 +102,7 @@ def convert(d: Data) -> Dataset:
     name="Define the intent and entities",
     description="Set the current lang dataset",
 )
-async def intent_populate(dataset: Data):
+async def intent_populate(dataset: Data, intentKit=Depends(get_kit)):
     try:
         if dataset.language != intentKit.lang:
             return {
@@ -115,7 +120,10 @@ async def intent_populate(dataset: Data):
     name="Recognize intent from sentence",
     description="This will recognize the intent from a givin sentence and return the result parsed",
 )
-async def intent_reconize(text: Annotated[str, Query(max_length=250, min_length=2)]):
+async def intent_reconize(
+    text: Annotated[str, Query(max_length=250, min_length=2)],
+    intentKit=Depends(get_kit),
+):
     try:
         return {"response": intentKit.parse(text)}
     except AttributeError:
@@ -439,6 +447,7 @@ def train(
 
 @cli.command()
 def serve(
+    lang: Lang = Lang.EN,
     host: Annotated[str, typer.Argument(help="THe host IP.")] = "0.0.0.0",
     port: Annotated[
         int,
@@ -458,6 +467,7 @@ def serve(
         print("Waiting for application startup.")
         print(f"App started on http://{host}:{port}")
         print("=" * 50)
+        app.state.intentKit = IntentKit(lang)
         uvicorn.run(app, host=host, port=port, log_level="warning")
 
     except Exception as e:
