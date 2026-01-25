@@ -70,7 +70,7 @@ async def alive():
 )
 async def intent_train(
     type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE,
-    lang: Lang = "en",
+    lang: Lang = Lang.EN,
 ):
     try:
         if type == IntentRecongnitionEngineTrainType.REUSE:
