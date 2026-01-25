@@ -4,6 +4,7 @@ import json
 
 from snips_nlu import SnipsNLUEngine
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
+from ai import generate
 from src.config import intents_data_folder
 
 
@@ -71,6 +72,15 @@ class IntentKit:
 
     def parse(self, text):
         if isinstance(self.engine, SnipsNLUEngine):
-            return self.engine.parse(text)
+            # intent.probability < 25% or itent.name = none
+            parsed: dict = self.engine.parse(text)
+
+            if (
+                parsed["intent"]["probability"] < 0.25
+                or parsed["intent"]["name"] == None
+            ):
+                return {"ai": generate(text)}
+
+            return {"engine": parsed}
         else:
             raise Exception("Intent recognition Engine not loaded")
