@@ -446,7 +446,7 @@ def version():
     The current Avi Version
     """
     print("AVI NLU v" + __version__)
-    print("Made by Tiago Inês")
+    print("Made by Tiago Inês, at Embrasse Studio.")
 
 
 if __name__ == "__main__":
