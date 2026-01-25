@@ -1,23 +1,25 @@
 from datetime import datetime, timedelta
+import re
 
+from snips_nlu.dataset import Dataset, Intent
+from snips_nlu.dataset.entity import Entity
 import typer
 import os
 import lingua_franca
 import lingua_franca.parse
 import lingua_franca.format
-from src.models import IntentRecongnitionEngineTrainType, Lang
+from src.models import Data, IntentRecongnitionEngineTrainType, Lang
 from src.kit import IntentKit
-from fastapi import FastAPI, Query
-from src.config import __version__, intents_data_folder
+from fastapi import Depends, FastAPI, Query, Request
+from src.config import __version__, engine_base_path
 from typing_extensions import Annotated
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 lingua_franca.load_languages(["en", "pt"])
 
-if not os.path.exists(intents_data_folder):
-    os.makedirs(intents_data_folder)
+if not os.path.exists(engine_base_path):
+    os.makedirs(engine_base_path)
 
-intentKit = IntentKit()
 app = FastAPI(
     title="Avi Server",
     version=__version__,
@@ -28,10 +30,13 @@ app = FastAPI(
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    on_startup=[intentKit.reuse],
 )
 
 cli = typer.Typer()
+
+
+def get_kit(request: Request) -> IntentKit:
+    return request.app.state.intentKit
 
 
 @app.get("/", name="Route")
@@ -44,22 +49,13 @@ async def route():
     name="Check If Alive",
     description="This checks if Avi is running and send the basic values",
 )
-async def alive():
+async def alive(intentKit=Depends(get_kit)):
     response = {
         "on": True,
         "kit": {
             "all_on": True and intentKit.loaded,
             "intent": intentKit.loaded,
         },
-        "lang": list(
-            map(
-                lambda x: x.strip(".yaml"),
-                filter(
-                    lambda e: e.endswith(".yaml"),
-                    os.listdir(f"{intents_data_folder}/data/"),
-                ),
-            )
-        ),
         "version": __version__,
     }
     return {"response": response}
@@ -70,16 +66,53 @@ async def alive():
 )
 async def intent_train(
     type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE,
-    lang: Lang = Lang.EN,
+    intentKit=Depends(get_kit),
 ):
     try:
         if type == IntentRecongnitionEngineTrainType.REUSE:
-            intentKit.reuse(lang)
+            intentKit.reuse()
         else:
-            intentKit.train(lang)
-        return {"response": {"result": True, "action": type.value, "lang": lang}}
+            intentKit.train()
+        return {
+            "response": {"result": True, "action": type.value, "lang": intentKit.lang}
+        }
     except Exception as e:
         return {"response": False, "error": str(e)}
+
+
+def load(data: Data):
+    intents = []
+    entities = []
+    for doc in data.data:
+        doc_type = doc.type
+        if doc_type == "entity":
+            entities.append(Entity.from_yaml(doc.as_dict()))
+        elif doc_type == "intent":
+            intents.append(Intent.from_yaml(doc.as_dict()))
+    return intents, entities
+
+
+def convert(d: Data) -> Dataset:
+    intents, entities = load(d)
+    return Dataset(d.language, intents, entities)
+
+
+@app.post(
+    "/intent_recognition/populate",
+    name="Define the intent and entities",
+    description="Set the current lang dataset",
+)
+async def intent_populate(dataset: Data, intentKit=Depends(get_kit)):
+    try:
+        if dataset.language != intentKit.lang:
+            return {
+                "error": f"Wrong Language Dataset expected, {intentKit.lang}",
+                "lang": intentKit.lang,
+            }
+        intentKit.populate(convert(dataset))
+        return {"response": True}
+    except AttributeError:
+        return {"error": "Engine not trained"}
 
 
 @app.get(
@@ -87,7 +120,10 @@ async def intent_train(
     name="Recognize intent from sentence",
     description="This will recognize the intent from a givin sentence and return the result parsed",
 )
-async def intent_reconize(text: Annotated[str, Query(max_length=250, min_length=2)]):
+async def intent_reconize(
+    text: Annotated[str, Query(max_length=250, min_length=2)],
+    intentKit=Depends(get_kit),
+):
     try:
         return {"response": intentKit.parse(text)}
     except AttributeError:
@@ -411,6 +447,7 @@ def train(
 
 @cli.command()
 def serve(
+    lang: Lang = Lang.EN,
     host: Annotated[str, typer.Argument(help="THe host IP.")] = "0.0.0.0",
     port: Annotated[
         int,
@@ -430,6 +467,7 @@ def serve(
         print("Waiting for application startup.")
         print(f"App started on http://{host}:{port}")
         print("=" * 50)
+        app.state.intentKit = IntentKit(lang)
         uvicorn.run(app, host=host, port=port, log_level="warning")
 
     except Exception as e:
