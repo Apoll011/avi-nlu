@@ -48,7 +48,7 @@ jobs:
       - name: Package artifacts 
         run: |
           cd dist
-          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} features/ README.txt
+          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} README.txt
           cd ..
 
       - name: Upload artifact 
