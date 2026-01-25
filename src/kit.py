@@ -6,7 +6,7 @@ from snips_nlu.dataset import Dataset
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
 from src.models import Lang
 from src.config import engine_base_path
-from ai import generate
+from src.ai import generate
 
 
 class IntentKit:
