@@ -55,7 +55,7 @@ class IntentKit:
             raise Exception("Intent recognition Engine not loaded")
         parsed: dict = self.engine.parse(text)
 
-        if parsed["intent"]["probability"] < 0.25 or parsed["intent"]["name"] == None:
+        if parsed["intent"]["probability"] < 0.25 or parsed["intent"] is None:
             return {"ai": generate(text)}
 
         return {"engine": parsed}
