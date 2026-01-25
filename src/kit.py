@@ -27,12 +27,20 @@ class IntentKit:
     def train(self, lang="en"):
         print(f"[IntentKit] Starting training for language: {lang}")
         test = "en" if lang == "en" else "pt_pt"
+        source = f"./features/intent_recognition/snips/data/{lang}.yaml"
         print(
-            f"[IntentKit] Generating dataset with snips-nlu for locale '{test}' from YAML: ./features/intent_recognition/snips/data/{lang}.yaml"
+            f"[IntentKit] Generating dataset with snips-nlu for locale '{test}' from YAML: {source}"
         )
-        os.system(
-            f"snips-nlu generate-dataset {test} {intents_data_folder}/data/{lang}.yaml > {intents_data_folder}/dataset/dataset_{lang}.json"
-        )
+
+        from snips_nlu.dataset import Dataset
+        from snips_nlu.common.utils import unicode_string, json_string
+
+        language = unicode_string(lang)
+        dataset = Dataset.from_yaml_files(language, [source])
+
+        with open(f"{intents_data_folder}/dataset/dataset_{lang}.json", "w+") as f:
+            f.write(json_string(dataset.json, indent=2, sort_keys=True))
+
         dataset_path = f"{intents_data_folder}/dataset/dataset_{lang}.json"
         print(f"[IntentKit] Loading generated dataset: {dataset_path}")
         with io.open(dataset_path) as f:

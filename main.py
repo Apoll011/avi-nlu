@@ -8,7 +8,7 @@ import lingua_franca.format
 from src.models import IntentRecongnitionEngineTrainType, Lang
 from src.kit import IntentKit
 from fastapi import FastAPI, Query
-from src.config import __version__, api, intents_data_folder
+from src.config import __version__, intents_data_folder
 from typing_extensions import Annotated
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -413,11 +413,11 @@ def train(
 def serve(
     host: Annotated[str, typer.Argument(help="THe host IP.")] = "0.0.0.0",
     port: Annotated[
-        str,
+        int,
         typer.Argument(
             help="The server port. Unless that you edit the port on Avi too, dont change this."
         ),
-    ] = "1178",
+    ] = 1178,
 ):
     """
     Starts a web api for AVI NLU
