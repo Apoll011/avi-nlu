@@ -1,10 +1,28 @@
+from snips_nlu.exceptions import (
+    DatasetFormatError,
+    EntityFormatError,
+    IntentFormatError,
+    SnipsNLUError,
+)
 from typing_extensions import Annotated
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from src.utils import get_kit
 from src.config import engine_base_path
 from snips_nlu.dataset import Dataset, Intent
 from snips_nlu.dataset.entity import Entity
-from src.models import Data, IntentRecongnitionEngineTrainType
+from src.models import (
+    Created,
+    Data,
+    EngineNotTrained,
+    EngineTrain,
+    EngineTrainError,
+    Installed,
+    EngineTrainType,
+    IntentError,
+    Recognized,
+    WrongDataset,
+    WrongLanguage,
+)
 import os
 import json
 
@@ -12,44 +30,37 @@ intent_router = APIRouter()
 
 
 @intent_router.get("/installed", name="Returns the instaled engines")
-async def intent_installed():
-    try:
-        return {
-            "response": {
-                "instaled": list(
-                    filter(
-                        lambda e: os.path.isdir(f"{engine_base_path}/{e}"),
-                        os.listdir(engine_base_path),
-                    )
-                ),
-                "data": {
-                    lang: json.load(
-                        open(f"{engine_base_path}/{lang}/nlu_engine.json", "r")
-                    )["dataset_metadata"]
-                    for lang in os.listdir(engine_base_path)
-                    if os.path.isdir(f"{engine_base_path}/{lang}")
-                },
-            }
-        }
-    except Exception as e:
-        return {"response": False, "error": str(e)}
+async def intent_installed() -> Installed:
+    return Installed(
+        installed=list(
+            filter(
+                lambda e: os.path.isdir(f"{engine_base_path}/{e}"),
+                os.listdir(engine_base_path),
+            )
+        ),
+        data={
+            lang: json.load(open(f"{engine_base_path}/{lang}/nlu_engine.json", "r"))[
+                "dataset_metadata"
+            ]
+            for lang in os.listdir(engine_base_path)
+            if os.path.isdir(f"{engine_base_path}/{lang}")
+        },
+    )
 
 
-@intent_router.get("/engine", name="Train or Reuse the Intent Recognition Engine")
+@intent_router.post("/engine", name="Train or Reuse the Intent Recognition Engine")
 async def intent_train(
-    type: IntentRecongnitionEngineTrainType = IntentRecongnitionEngineTrainType.REUSE,
+    type: EngineTrainType = EngineTrainType.REUSE,
     intentKit=Depends(get_kit),
-):
+) -> EngineTrain:
     try:
-        if type == IntentRecongnitionEngineTrainType.REUSE:
+        if type == EngineTrainType.REUSE:
             intentKit.reuse()
         else:
             intentKit.train()
-        return {
-            "response": {"result": True, "action": type.value, "lang": intentKit.lang}
-        }
+        return EngineTrain(result=True, action=type, lang=intentKit.lang)
     except Exception as e:
-        return {"response": False, "error": str(e)}
+        raise EngineTrainError(type, str(e))
 
 
 def load(data: Data):
@@ -73,20 +84,19 @@ def convert(d: Data) -> Dataset:
     "/populate",
     name="Define the intent and entities",
     description="Set the current lang dataset",
+    status_code=202,
 )
-async def intent_populate(dataset: Data, intentKit=Depends(get_kit)):
+async def intent_populate(dataset: Data, intentKit=Depends(get_kit)) -> Created:
     try:
         if dataset.language != intentKit.lang:
-            return {
-                "error": f"Wrong Language Dataset expected, {intentKit.lang}",
-                "lang": intentKit.lang,
-            }
+            raise WrongLanguage(intentKit.lang)
         intentKit.populate(convert(dataset))
-        return {"response": True}
+        return Created()
+
+    except DatasetFormatError as e:
+        raise WrongDataset(str(e))
     except AttributeError:
-        return {"error": "Engine not trained"}
-    except Exception as e:
-        return {"response": False, "error": str(e)}
+        raise EngineNotTrained()
 
 
 @intent_router.get(
@@ -97,10 +107,11 @@ async def intent_populate(dataset: Data, intentKit=Depends(get_kit)):
 async def intent_reconize(
     text: Annotated[str, Query(max_length=250, min_length=2)],
     intentKit=Depends(get_kit),
-):
+) -> Recognized:
     try:
-        return {"response": intentKit.parse(text)}
+        data, processor = intentKit.parse(text)
+        return Recognized(result=data, processor=processor)
     except AttributeError:
-        return {"error": "Engine not trained", "response": None}
-    except Exception as e:
-        return {"response": None, "error": str(e)}
+        raise EngineNotTrained()
+    except SnipsNLUError as e:
+        return IntentError(str(e))

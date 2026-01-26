@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Union
+from typing import Dict, List, Union
 
 from pydantic import BaseModel
 
@@ -57,9 +57,14 @@ class Data(BaseModel):
     data: List[Union[Entity, Intent]]
 
 
-class IntentRecongnitionEngineTrainType(str, Enum):
+class EngineTrainType(str, Enum):
     TRAIN = "train"
     REUSE = "reuse"
+
+
+class Processor(str, Enum):
+    AI = "ai"
+    ENGINE = "engine"
 
 
 class Route(BaseModel):
@@ -70,3 +75,66 @@ class Alive(BaseModel):
     on: bool
     intent_kit: bool
     version: str
+
+
+class Installed(BaseModel):
+    installed: List[str]
+    data: Dict[str, Dict]
+
+
+class EngineTrain(BaseModel):
+    result: bool
+    action: EngineTrainType
+    lang: Lang
+
+
+class Created(BaseModel):
+    created: bool = True
+
+
+class Recognized(BaseModel):
+    result: Dict
+    processor: Processor
+
+
+class AppError(Exception):
+    status_code: int
+    code: str
+    message: str
+
+    def __init__(self, message: str):
+        self.message = message
+
+
+class EngineTrainError(AppError):
+    status_code = 500
+    code = "ENGINE_TRAIN_ERROR"
+
+    def __init__(self, type: EngineTrainType, error: str):
+        super().__init__(f"Error {type.value} the engine: {error}")
+
+
+class EngineNotTrained(AppError):
+    status_code = 500
+    code = "ENGINE_NOT_TRAINED"
+
+    def __init__(self):
+        super().__init__("Engine not trained, Please train or re-use it.")
+
+
+class IntentError(AppError):
+    status_code = 500
+    code = "INTENT_ERROR"
+
+
+class WrongDataset(AppError):
+    status_code = 422
+    code = "DATASET_ERROR"
+
+
+class WrongLanguage(AppError):
+    status_code = 400
+    code = "NOT_THE_CURRENT_LANGUAGE"
+
+    def __init__(self, lang: Lang):
+        super().__init__(f"Wrong Language Dataset expected, {lang}")

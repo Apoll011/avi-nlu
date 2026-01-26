@@ -1,6 +1,7 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import JSONResponse
 from src.kit import IntentKit
-from src.models import Alive, Lang, Route
+from src.models import Alive, Lang, Route, AppError
 from src.config import __version__
 from src.utils import get_kit
 from src.routes.intent_recognition import intent_router
@@ -23,6 +24,17 @@ app = FastAPI(
 
 app.include_router(intent_router, prefix="/intent_recognition", tags=["intent"])
 app.include_router(lang_router, prefix="/lang", tags=["lang"])
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": exc.code,
+            "message": exc.message,
+        },
+    )
 
 
 @app.get("/docs", include_in_schema=False)

@@ -4,7 +4,7 @@ from typing_extensions import Optional
 from snips_nlu import SnipsNLUEngine
 from snips_nlu.dataset import Dataset
 from snips_nlu.default_configs import CONFIG_EN, CONFIG_PT_PT
-from src.models import Lang
+from src.models import Lang, Processor
 from src.config import engine_base_path
 from src.ai import generate
 
@@ -50,10 +50,10 @@ class IntentKit:
 
     def parse(self, text):
         if not self.loaded or not isinstance(self.engine, SnipsNLUEngine):
-            raise Exception("Intent recognition Engine not loaded")
+            raise AttributeError("Intent recognition Engine not loaded")
         parsed: dict = self.engine.parse(text)
 
         if parsed["intent"]["probability"] < 0.25 or parsed["intent"] is None:
-            return {"ai": generate(text)}
+            return generate(text), Processor.AI
 
-        return {"engine": parsed}
+        return parsed, Processor.ENGINE
