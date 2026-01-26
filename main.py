@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from src.routes.intent_recognition import intent_router
 from src.routes.lang import lang_router
+from scalar_fastapi import get_scalar_api_reference
 
 lingua_franca.load_languages(["en", "pt"])
 
@@ -28,12 +29,32 @@ app = FastAPI(
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
+    docs_url=None,
+    redoc_url=None,
 )
 
 app.include_router(intent_router, prefix="/intent_recognition", tags=["intent"])
 app.include_router(lang_router, prefix="/lang", tags=["lang"])
 
 cli = typer.Typer()
+
+
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="AvI NLU API",
+        scalar_proxy_url="https://proxy.scalar.com",
+        hide_models=True,
+        expand_all_responses=True,
+        expand_all_model_sections=True,
+        overrides={
+            "theme": "bluePlanet",
+            "showToolbar": "localhost",
+            "operationTitleSource": "summary",
+            "orderSchemaPropertiesBy": "alpha",
+            "showOperationId": False,
+        },
+    )
 
 
 @app.get("/", name="Route")
