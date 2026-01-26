@@ -1,7 +1,5 @@
 from snips_nlu.exceptions import (
     DatasetFormatError,
-    EntityFormatError,
-    IntentFormatError,
     SnipsNLUError,
 )
 from typing_extensions import Annotated
