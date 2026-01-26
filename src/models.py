@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union, Literal, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Lang(str, Enum):
@@ -10,7 +9,7 @@ class Lang(str, Enum):
     PT = "pt"
 
 
-class Slot(BaseModel):
+class InputSlot(BaseModel):
     name: str
     entity: str
 
@@ -18,11 +17,11 @@ class Slot(BaseModel):
         return {"name": self.name, "entity": self.entity}
 
 
-class Intent(BaseModel):
+class InputIntent(BaseModel):
     type: str = "intent"
     name: str
     utterances: List[str]
-    slots: List[Slot]
+    slots: List[InputSlot]
 
     def as_dict(self) -> dict:
         return {
@@ -54,7 +53,49 @@ class Entity(BaseModel):
 
 class Data(BaseModel):
     language: Lang
-    data: List[Union[Entity, Intent]]
+    data: List[Union[Entity, InputIntent]]
+
+
+class Range(BaseModel):
+    start: int
+    end: int
+
+
+class SlotValue(BaseModel):
+    kind: Literal["Custom"]
+    value: str
+
+
+class Slot(BaseModel):
+    range: Range
+    rawValue: str
+    value: SlotValue
+    entity: str
+    slotName: str
+
+
+class Intent(BaseModel):
+    intentName: str
+    probability: float
+
+
+class NLUResult(BaseModel):
+    input: str
+    intent: Intent
+    slots: List[Slot]
+
+
+class Action(BaseModel):
+    id: str = Field(..., description="Unique action identifier")
+    function: str = Field(..., description="Function name (core or skill)")
+    args: Dict[str, Any] = Field(default_factory=dict)
+    condition: Optional[str] = Field(
+        None, description="Optional condition referencing previous results"
+    )
+
+
+class ActionPlan(BaseModel):
+    actions: List[Action]
 
 
 class EngineTrainType(str, Enum):
@@ -93,7 +134,7 @@ class Created(BaseModel):
 
 
 class Recognized(BaseModel):
-    result: Dict
+    result: Union[ActionPlan, NLUResult]
     processor: Processor
 
 
