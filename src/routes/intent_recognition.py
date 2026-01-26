@@ -114,4 +114,4 @@ async def intent_reconize(
     except AttributeError:
         raise EngineNotTrained()
     except SnipsNLUError as e:
-        return IntentError(str(e))
+        raise IntentError(str(e))
