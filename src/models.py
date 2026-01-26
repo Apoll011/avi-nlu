@@ -277,6 +277,11 @@ class Recognized(BaseModel):
 
 
 # Exception classes
+class ErrorResponse(BaseModel):
+    code: str
+    message: str
+
+
 class AppError(Exception):
     """Base application error."""
 
@@ -311,21 +316,21 @@ class EngineNotTrained(AppError):
 class IntentError(AppError):
     """Generic intent processing error."""
 
-    status_code = 500
+    status_code = 502
     code = "INTENT_ERROR"
 
 
 class WrongDataset(AppError):
     """Error for malformed or invalid dataset."""
 
-    status_code = 422
+    status_code = 400
     code = "DATASET_ERROR"
 
 
 class WrongLanguage(AppError):
     """Error when dataset language doesn't match expected language."""
 
-    status_code = 400
+    status_code = 409
     code = "NOT_THE_CURRENT_LANGUAGE"
 
     def __init__(self, lang: Lang):

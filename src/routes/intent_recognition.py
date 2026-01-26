@@ -14,6 +14,7 @@ from src.models import (
     EngineNotTrained,
     EngineTrain,
     EngineTrainError,
+    ErrorResponse,
     Installed,
     EngineTrainType,
     IntentError,
@@ -46,7 +47,16 @@ async def intent_installed() -> Installed:
     )
 
 
-@intent_router.post("/engine", name="Train or Reuse the Intent Recognition Engine")
+@intent_router.post(
+    "/engine",
+    name="Train or Reuse the Intent Recognition Engine",
+    responses={
+        500: {
+            "description": "Error Training or reusing the model",
+            "model": ErrorResponse,
+        }
+    },
+)
 async def intent_train(
     type: EngineTrainType = EngineTrainType.REUSE,
     intentKit=Depends(get_kit),
@@ -83,6 +93,20 @@ def convert(d: Data) -> Dataset:
     name="Define the intent and entities",
     description="Set the current lang dataset",
     status_code=202,
+    responses={
+        500: {
+            "description": "Engine not trained",
+            "model": ErrorResponse,
+        },
+        409: {
+            "description": "Worng language on the dataset",
+            "model": ErrorResponse,
+        },
+        400: {
+            "description": "Dataset has invalid data",
+            "model": ErrorResponse,
+        },
+    },
 )
 async def intent_populate(dataset: Data, intentKit=Depends(get_kit)) -> Created:
     try:
@@ -101,6 +125,16 @@ async def intent_populate(dataset: Data, intentKit=Depends(get_kit)) -> Created:
     "/",
     name="Recognize intent from sentence",
     description="This will recognize the intent from a givin sentence and return the result parsed",
+    responses={
+        500: {
+            "description": "Engine not trained",
+            "model": ErrorResponse,
+        },
+        502: {
+            "description": "Error getting the intent",
+            "model": ErrorResponse,
+        },
+    },
 )
 async def intent_reconize(
     text: Annotated[str, Query(max_length=250, min_length=2)],
