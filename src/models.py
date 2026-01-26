@@ -60,3 +60,13 @@ class Data(BaseModel):
 class IntentRecongnitionEngineTrainType(str, Enum):
     TRAIN = "train"
     REUSE = "reuse"
+
+
+class Route(BaseModel):
+    name: str
+
+
+class Alive(BaseModel):
+    on: bool
+    intent_kit: bool
+    version: str

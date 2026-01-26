@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI
 from src.kit import IntentKit
-from src.models import Lang
+from src.models import Alive, Lang, Route
 from src.config import __version__
 from src.utils import get_kit
 from src.routes.intent_recognition import intent_router
@@ -45,8 +45,8 @@ async def scalar_html():
 
 
 @app.get("/", name="Route")
-async def route():
-    return {"response": {"name": "Avi"}}
+async def route() -> Route:
+    return Route(name="Avi")
 
 
 @app.get(
@@ -54,16 +54,8 @@ async def route():
     name="Check If Alive",
     description="This checks if Avi is running and send the basic values",
 )
-async def alive(intentKit=Depends(get_kit)):
-    response = {
-        "on": True,
-        "kit": {
-            "all_on": True and intentKit.loaded,
-            "intent": intentKit.loaded,
-        },
-        "version": __version__,
-    }
-    return {"response": response}
+async def alive(intentKit=Depends(get_kit)) -> Alive:
+    return Alive(on=True, intent_kit=intentKit.loaded, version=__version__)
 
 
 def serve(lang: Lang = Lang.EN, host: str = "0.0.0.0", port: int = 1178):
