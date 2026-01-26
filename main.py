@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 from fastapi import Depends, FastAPI
 import typer
 import os
@@ -39,6 +37,7 @@ app.include_router(lang_router, prefix="/lang", tags=["lang"])
 cli = typer.Typer()
 
 
+@app.get("/docs", include_in_schema=False)
 async def scalar_html():
     return get_scalar_api_reference(
         openapi_url=app.openapi_url,
