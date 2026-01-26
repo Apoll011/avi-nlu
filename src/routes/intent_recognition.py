@@ -3,7 +3,7 @@ from snips_nlu.exceptions import (
     SnipsNLUError,
 )
 from typing_extensions import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from src.utils import get_kit
 from src.config import engine_base_path
 from snips_nlu.dataset import Dataset, Intent
@@ -28,7 +28,12 @@ import json
 intent_router = APIRouter()
 
 
-@intent_router.get("/installed", name="Returns the instaled engines")
+@intent_router.get(
+    "/installed",
+    name="Returns the instaled engines",
+    status_code=200,
+    responses={200: {"model": Installed, "description": "The avaliable engines"}},
+)
 async def intent_installed() -> Installed:
     return Installed(
         installed=list(
@@ -50,11 +55,13 @@ async def intent_installed() -> Installed:
 @intent_router.post(
     "/engine",
     name="Train or Reuse the Intent Recognition Engine",
+    status_code=200,
     responses={
+        200: {"model": EngineTrain, "description": "The result"},
         500: {
             "description": "Error Training or reusing the model",
             "model": ErrorResponse,
-        }
+        },
     },
 )
 async def intent_train(
@@ -94,6 +101,7 @@ def convert(d: Data) -> Dataset:
     description="Set the current lang dataset",
     status_code=202,
     responses={
+        200: {"model": Created, "description": ""},
         500: {
             "description": "Engine not trained",
             "model": ErrorResponse,
@@ -124,8 +132,10 @@ async def intent_populate(dataset: Data, intentKit=Depends(get_kit)) -> Created:
 @intent_router.get(
     "/",
     name="Recognize intent from sentence",
+    status_code=200,
     description="This will recognize the intent from a givin sentence and return the result parsed",
     responses={
+        200: {"model": Recognized, "description": "The recognized intent"},
         500: {
             "description": "Engine not trained",
             "model": ErrorResponse,
