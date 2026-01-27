@@ -78,11 +78,17 @@ jobs:
           command-args: >
             -o ./generated-client 
             --additional-properties=packageName=avi_nlu_client,withSerde=true,useRustls=true
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
       - name: Push to Client Repository
         env:
           API_TOKEN_GITHUB: ${{ secrets.CLIENT_REPO_TOKEN }}
         run: |
           git clone https://x-access-token:${{ secrets.CLIENT_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/avi-nlu-client.git client-repo
+          
+          sudo apt-get install -y ripgrep
           
           cd client-repo
           
@@ -102,19 +108,15 @@ jobs:
             echo "HAS_CHANGES=false" >> $GITHUB_ENV
           else
             git commit -m "Sync Rust client with Server ${{ github.ref_name }}"
+            
+            rg "models::serde_json::Value" -l ./   | xargs sed -i 's/models::serde_json::Value/serde_json::Value/g' || true
+            rg "models::models::" -l ./   | xargs sed -i 's/models::models::/models::/g' || true
+            
+            git add src/
+
+            git commit -m "Fixed buggs related to generation of the client v${{ github.ref_name }}"
+
             git push --force origin automated-update-${{ github.run_id }}
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
             echo "BRANCH_NAME=automated-update-${{ github.run_id }}" >> $GITHUB_ENV
           fi
-      
-      - name: Create Pull Request
-        if: env.HAS_CHANGES == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.CLIENT_REPO_TOKEN }}
-        run: |
-          gh pr create \
-            --repo ${{ github.repository_owner }}/avi-nlu-client \
-            --base main \
-            --head ${{ env.BRANCH_NAME }} \
-            --title "Automated update from ${{ github.repository }}" \
-            --body "This PR contains automated updates triggered by changes in ${{ github.repository }}."
