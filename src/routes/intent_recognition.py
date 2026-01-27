@@ -101,7 +101,7 @@ def convert(d: Data) -> Dataset:
     description="Set the current lang dataset",
     status_code=202,
     responses={
-        200: {"model": Created, "description": ""},
+        202: {"model": Created, "description": ""},
         500: {
             "description": "Engine not trained",
             "model": ErrorResponse,
