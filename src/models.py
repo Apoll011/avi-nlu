@@ -83,6 +83,7 @@ class Entity(BaseModel):
             ["NYC", "New York", "New York City"],
         ],
         min_length=1,
+        discriminator="kind",
     )
     automatically_extensible: bool = Field(
         default=True,
@@ -118,6 +119,7 @@ class Data(BaseModel):
         ...,
         description="Collection of entities and intents to train the NLU engine",
         min_length=1,
+        discriminator="kind",
     )
 
 
