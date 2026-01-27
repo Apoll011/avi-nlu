@@ -27,7 +27,7 @@ jobs:
             venv-${{ runner.os }}-
 
       - name: Setup 
-        run: ./scrips/setup.sh
+        run: ./scripts/setup.sh
 
       - name: Build
         run: ./scripts/build.sh
