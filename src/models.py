@@ -74,7 +74,7 @@ class Entity(BaseModel):
         examples=["product_category", "city_name", "color"],
         min_length=1,
     )
-    values: List[Union[str, List[str]]] = Field(
+    values: List[List[str]] = Field(
         ...,
         description="List of entity values. Can be strings or lists of synonyms (first item is canonical value)",
         examples=[
