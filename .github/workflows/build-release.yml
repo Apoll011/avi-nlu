@@ -93,43 +93,43 @@ jobs:
           command-args: >
             -o ./generated-client 
             --additional-properties=packageName=avi_nlu_client,withSerde=true,useRustls=true
-	 - name: Push to Client Repository
-	   env:
-	     API_TOKEN_GITHUB: ${{ secrets.CLIENT_REPO_TOKEN }}
-	   run: |
-	     git clone https://x-access-token:${{ secrets.CLIENT_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/avi-nlu-client.git client-repo
-	     
-	     cd client-repo
-	     
-	     git checkout -b automated-update-${{ github.run_id }}
-	     
-	     find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-	     
-	     cp -r ../generated-client/* .
-	     
-	     git config user.name "github-actions[bot]"
-	     git config user.email "github-actions[bot]@users.noreply.github.com"
-	     
-	     git add -A
-	     
-	     if git diff --staged --quiet; then
-	       echo "No changes detected, skipping commit and PR"
-	       echo "HAS_CHANGES=false" >> $GITHUB_ENV
-	     else
-	       git commit -m "Sync Rust client with Server ${{ github.ref_name }}"
-	       git push origin automated-update-${{ github.run_id }}
-	       echo "HAS_CHANGES=true" >> $GITHUB_ENV
-	       echo "BRANCH_NAME=automated-update-${{ github.run_id }}" >> $GITHUB_ENV
-	     fi
-	 
-	 - name: Create Pull Request
-	   if: env.HAS_CHANGES == 'true'
-	   env:
-	     GH_TOKEN: ${{ secrets.CLIENT_REPO_TOKEN }}
-	   run: |
-	     gh pr create \
-	       --repo ${{ github.repository_owner }}/avi-nlu-client \
-	       --base main \
-	       --head ${{ env.BRANCH_NAME }} \
-	       --title "Automated update from ${{ github.repository }}" \
-	       --body "This PR contains automated updates triggered by changes in ${{ github.repository }}."
+     - name: Push to Client Repository
+       env:
+         API_TOKEN_GITHUB: ${{ secrets.CLIENT_REPO_TOKEN }}
+       run: |
+         git clone https://x-access-token:${{ secrets.CLIENT_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/avi-nlu-client.git client-repo
+         
+         cd client-repo
+         
+         git checkout -b automated-update-${{ github.run_id }}
+         
+         find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+         
+         cp -r ../generated-client/* .
+         
+         git config user.name "github-actions[bot]"
+         git config user.email "github-actions[bot]@users.noreply.github.com"
+         
+         git add -A
+         
+         if git diff --staged --quiet; then
+           echo "No changes detected, skipping commit and PR"
+           echo "HAS_CHANGES=false" >> $GITHUB_ENV
+         else
+           git commit -m "Sync Rust client with Server ${{ github.ref_name }}"
+           git push origin automated-update-${{ github.run_id }}
+           echo "HAS_CHANGES=true" >> $GITHUB_ENV
+           echo "BRANCH_NAME=automated-update-${{ github.run_id }}" >> $GITHUB_ENV
+         fi
+     
+     - name: Create Pull Request
+       if: env.HAS_CHANGES == 'true'
+       env:
+         GH_TOKEN: ${{ secrets.CLIENT_REPO_TOKEN }}
+       run: |
+         gh pr create \
+           --repo ${{ github.repository_owner }}/avi-nlu-client \
+           --base main \
+           --head ${{ env.BRANCH_NAME }} \
+           --title "Automated update from ${{ github.repository }}" \
+           --body "This PR contains automated updates triggered by changes in ${{ github.repository }}."
