@@ -37,11 +37,7 @@ class InputSlot(BaseModel):
 class InputIntent(BaseModel):
     """Defines an intent with training utterances and slot mappings."""
 
-    kind: Literal["intent"] = "intent"
-    type: str = Field(
-        default="intent",
-        description="Type identifier for intent objects",
-    )
+    type: Literal["intent"] = "intent"
     name: str = Field(
         ...,
         description="Unique name for the intent",
@@ -71,11 +67,7 @@ class InputIntent(BaseModel):
 class Entity(BaseModel):
     """Defines a custom entity type for slot extraction."""
 
-    kind: Literal["entity"] = "entity"
-    type: str = Field(
-        default="entity",
-        description="Type identifier for entity objects",
-    )
+    type: Literal["entity"] = "entity"
     name: str = Field(
         ...,
         description="Unique name for the entity",
@@ -118,8 +110,7 @@ class Entity(BaseModel):
         }
 
 
-# --- FIX 1: Define the discriminated Union explicitly using Annotated ---
-TrainingItem = Annotated[Union[Entity, InputIntent], Field(discriminator="kind")]
+TrainingItem = Annotated[Union[Entity, InputIntent], Field(discriminator="type")]
 
 
 class Data(BaseModel):
