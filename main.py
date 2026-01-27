@@ -1,37 +1,16 @@
 import typer
 import os
-import lingua_franca
 from src.models import Lang
-from src.kit import IntentKit
 from src.config import __version__, engine_base_path
 from src.app import serve as api_serve
 from typing_extensions import Annotated
-from rich.progress import Progress, SpinnerColumn, TextColumn
-
-lingua_franca.load_languages(["en", "pt"])
+from src.ui import AVI_BANNER
+from click import clear
 
 if not os.path.exists(engine_base_path):
     os.makedirs(engine_base_path)
 
-cli = typer.Typer()
-
-
-@cli.command()
-def train(
-    lang: Annotated[
-        Lang, typer.Argument(help="The language to train the engine with")
-    ] = Lang.EN,
-):
-    """
-    Trains the engine on a specified language and saves the engine on the engine data folder
-    """
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-    ) as progress:
-        progress.add_task(description="Training...", total=None)
-        IntentKit(lang).train()
+cli = typer.Typer(add_completion=False)
 
 
 @cli.command()
@@ -44,21 +23,54 @@ def serve(
             help="The server port. Unless that you edit the port on Avi too, dont change this."
         ),
     ] = 1178,
+    verbose: bool = False,
 ):
     """
     Starts a web api for AVI NLU
     """
-    api_serve(lang, host, port)
+    api_serve(lang, host, port, verbose)
 
 
 @cli.command()
-def version():
+def version(
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed version and build information."
+    ),
+):
     """
-    The current Avi Version
+    Show AVI NLU version information.
     """
-    print("AVI NLU v" + __version__)
-    print("Made by Tiago Inês, at Embrasse Studio.")
+    import platform
+    import sys
+
+    if verbose:
+        typer.echo("Build Information:")
+        typer.echo("  Package: ", nl=False)
+        typer.secho("AVI NLU", fg=typer.colors.CYAN)
+        typer.echo("  Version: ", nl=False)
+        typer.secho(__version__, fg=typer.colors.CYAN)
+        typer.echo()
+        typer.echo("Runtime Information:")
+        typer.echo("  Platform: ", nl=False)
+        typer.secho(platform.system().lower(), fg=typer.colors.CYAN)
+        typer.echo("  Architecture: ", nl=False)
+        typer.secho(platform.machine(), fg=typer.colors.CYAN)
+        typer.echo("  Python: ", nl=False)
+        typer.secho(
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            fg=typer.colors.CYAN,
+        )
+        typer.echo()
+        typer.echo("For more information, visit: ", nl=False)
+        typer.secho("https://github.com/apoll011/AviNLU", fg=typer.colors.CYAN)
 
 
 if __name__ == "__main__":
+    clear()
+
+    typer.secho(AVI_BANNER, fg=typer.colors.CYAN, bold=True)
+    typer.echo("  System Version: ", nl=False)
+    typer.secho(__version__, fg=typer.colors.CYAN)
+    typer.echo("  " + "─" * 46)
+
     cli()

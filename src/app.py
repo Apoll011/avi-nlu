@@ -1,3 +1,5 @@
+import time
+import lingua_franca
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from src.kit import IntentKit
@@ -7,6 +9,9 @@ from src.utils import get_kit
 from src.routes.intent_recognition import intent_router
 from src.routes.lang import lang_router
 from scalar_fastapi import get_scalar_api_reference
+import typer
+from src.ui import AVI_BANNER
+import uvicorn
 
 app = FastAPI(
     title="Avi Server",
@@ -70,21 +75,93 @@ async def alive(intentKit=Depends(get_kit)) -> Alive:
     return Alive(on=True, intent_kit=intentKit.loaded, version=__version__)
 
 
-def serve(lang: Lang = Lang.EN, host: str = "0.0.0.0", port: int = 1178):
-    import uvicorn
+def serve(
+    lang: Lang = Lang.EN, host: str = "0.0.0.0", port: int = 1178, verbose: bool = False
+):
+    """
+    Start the AVI NLU server.
+    """
+    import threading
 
     try:
-        print("=" * 50)
-        print("Press Ctrl+C to stop")
-        print("Waiting for application startup.")
-        print(f"App started on http://{host}:{port}")
-        print("=" * 50)
-        app.state.intentKit = IntentKit(lang)
-        uvicorn.run(app, host=host, port=port, log_level="warning")
+        steps = [
+            ("Initializing Environment", lambda: None),
+            (
+                "Loading Intent Engine",
+                lambda: setattr(app.state, "intentKit", IntentKit(lang)),
+            ),
+            (
+                f"Configuring Language: {lang.name}",
+                lambda: lingua_franca.load_languages(["en", "pt"]),
+            ),
+            ("Initializing Runtime", lambda: None),
+        ]
+
+        for i, (step_name, step_func) in enumerate(steps, 1):
+            with typer.progressbar(
+                length=1,
+                label=f"[{i}/{len(steps)}] {step_name}",
+                show_pos=False,
+                show_percent=False,
+            ) as bar:
+                step_func()
+                bar.update(1)
+
+        typer.echo()
+
+        def print_server_ready():
+            import time
+
+            time.sleep(3)
+            typer.echo()
+            typer.secho(
+                f"Server started on http://{host}:{port}",
+                fg=typer.colors.BRIGHT_GREEN,
+                bold=True,
+            )
+            if not verbose:
+                typer.secho("Press Ctrl+C to stop", fg=typer.colors.BRIGHT_BLACK)
+            typer.echo()
+
+        ready_thread = threading.Thread(target=print_server_ready, daemon=True)
+        ready_thread.start()
+
+        # Run uvicorn
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            log_level="info" if verbose else "error",
+            access_log=verbose,
+        )
+
+    except KeyboardInterrupt:
+        typer.echo("\n")
+        typer.secho("Shutdown requested", fg=typer.colors.YELLOW)
+        typer.secho("Goodbye.", fg=typer.colors.BRIGHT_CYAN)
+        typer.echo()
+
+    except OSError as e:
+        if "Address already in use" in str(e):
+            typer.echo("\n")
+            typer.secho("Error: Port already in use", fg=typer.colors.RED, bold=True)
+            typer.echo(f"Try: --port {port + 1}")
+            typer.echo()
+        else:
+            typer.echo("\n")
+            typer.secho(f"Error: {str(e)}", fg=typer.colors.RED, bold=True)
+            typer.echo()
+        raise typer.Exit(code=1)
 
     except Exception as e:
-        print(f"[ERROR] Failed to start server: {e}")
-        import traceback
+        typer.echo("\n")
+        typer.secho(f"Error: {str(e)}", fg=typer.colors.RED, bold=True)
 
-        traceback.print_exc()
-        input("Press Enter to exit...")
+        if verbose:
+            import traceback
+
+            typer.echo()
+            traceback.print_exc()
+
+        typer.echo()
+        raise typer.Exit(code=1)
