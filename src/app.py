@@ -10,7 +10,6 @@ from src.routes.intent_recognition import intent_router
 from src.routes.lang import lang_router
 from scalar_fastapi import get_scalar_api_reference
 import typer
-from src.ui import AVI_BANNER
 import uvicorn
 
 app = FastAPI(
@@ -77,6 +76,7 @@ async def alive(intentKit=Depends(get_kit)) -> Alive:
 
 def openapi(path: str):
     openapi_schema = app.openapi()
+    import json
 
     with open(f"{path}/openapi.json", "w") as f:
         json.dump(openapi_schema, f, indent=2)
