@@ -102,7 +102,7 @@ jobs:
             echo "HAS_CHANGES=false" >> $GITHUB_ENV
           else
             git commit -m "Sync Rust client with Server ${{ github.ref_name }}"
-            git push origin automated-update-${{ github.run_id }}
+            git push --force origin automated-update-${{ github.run_id }}
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
             echo "BRANCH_NAME=automated-update-${{ github.run_id }}" >> $GITHUB_ENV
           fi
