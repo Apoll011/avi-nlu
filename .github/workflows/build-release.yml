@@ -77,7 +77,7 @@ jobs:
           openapi-file: openapi.json
           command-args: >
             -o ./generated-client 
-            --additional-properties=packageName=avi_nlu_client,withSerde=true,useRustls=true
+            --additional-properties=packageName=avi_nlu_client,withSerde=true,useRustls=true,useOneOfDiscriminatorLookup=true
       - name: Install ripgrep
         run: |
           sudo apt-get update
