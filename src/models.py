@@ -1,5 +1,11 @@
 from enum import Enum
 from typing import Dict, List, Optional, Union, Literal, Any
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
+
 from pydantic import BaseModel, Field
 
 
@@ -31,6 +37,7 @@ class InputSlot(BaseModel):
 class InputIntent(BaseModel):
     """Defines an intent with training utterances and slot mappings."""
 
+    kind: Literal["intent"] = "intent"
     type: str = Field(
         default="intent",
         description="Type identifier for intent objects",
@@ -64,6 +71,7 @@ class InputIntent(BaseModel):
 class Entity(BaseModel):
     """Defines a custom entity type for slot extraction."""
 
+    kind: Literal["entity"] = "entity"
     type: str = Field(
         default="entity",
         description="Type identifier for entity objects",
@@ -83,7 +91,6 @@ class Entity(BaseModel):
             ["NYC", "New York", "New York City"],
         ],
         min_length=1,
-        discriminator="kind",
     )
     automatically_extensible: bool = Field(
         default=True,
@@ -111,15 +118,19 @@ class Entity(BaseModel):
         }
 
 
+# --- FIX 1: Define the discriminated Union explicitly using Annotated ---
+TrainingItem = Annotated[Union[Entity, InputIntent], Field(discriminator="kind")]
+
+
 class Data(BaseModel):
     """Training dataset containing entities and intents for a specific language."""
 
     language: Lang = Field(..., description="Target language for this dataset")
-    data: List[Union[Entity, InputIntent]] = Field(
+    # Apply the Annotated type inside the List
+    data: List[TrainingItem] = Field(
         ...,
         description="Collection of entities and intents to train the NLU engine",
         min_length=1,
-        discriminator="kind",
     )
 
 
@@ -170,6 +181,7 @@ class Intent(BaseModel):
 class NLUResult(BaseModel):
     """Complete NLU parsing result including intent and extracted slots."""
 
+    kind: Literal["nlu"] = "nlu"
     input: str = Field(..., description="Original user input text that was parsed")
     intent: Intent = Field(..., description="Recognized intent with confidence score")
     slots: List[Slot] = Field(
@@ -202,6 +214,7 @@ class Action(BaseModel):
 class ActionPlan(BaseModel):
     """Sequence of actions to be executed."""
 
+    kind: Literal["action_plan"] = "action_plan"
     actions: List[Action] = Field(
         ..., description="Ordered list of actions to execute", min_length=1
     )
@@ -266,10 +279,14 @@ class Created(BaseModel):
     )
 
 
+# --- FIX 2: Define the discriminated Union explicitly using Annotated ---
+RecognitionResult = Annotated[Union[ActionPlan, NLUResult], Field(discriminator="kind")]
+
+
 class Recognized(BaseModel):
     """Recognition result from either AI or NLU engine."""
 
-    result: Union[ActionPlan, NLUResult] = Field(
+    result: RecognitionResult = Field(
         ...,
         description="Recognition result: ActionPlan if processed by AI, NLUResult if processed by engine",
     )
