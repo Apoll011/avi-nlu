@@ -7,21 +7,8 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: AviNLU-Linux
-            asset_name: AviNLU-Linux-x64
-          #- os: windows-latest
-          #  artifact_name: AviNLU-Windows.exe
-          #  asset_name: AviNLU-Windows-x64.exe
-          #- os: macos-latest
-          #  artifact_name: AviNLU-macOS
-          #  asset_name: AviNLU-macOS-x64
-
+    name: Build Linux Executable
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,118 +19,89 @@ jobs:
           python-version: '3.8'
 
       - name: Cache virtual environment
-        uses: actions/cache@v3
+        uses: actions/cache@v4 # Updated to v4
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             venv-${{ runner.os }}-
-  
+
       - name: Setup 
         run: ./setup.sh
 
       - name: Build
         run: ./build.sh
 
-      - name: Package artifacts 
-        run: |
-          cd dist
-          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} README.txt
-          cd ..
-
-      - name: Upload artifact 
+      - name: Upload Built Binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: dist/${{ matrix.asset_name }}.tar.gz
+          name: linux-binary
+          path: dist/AviNLU-Linux
+
 
   release:
-    name: Create Release
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
+      - name: Download Built Binary
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: linux-binary
+          path: dist/
 
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
+      - name: Package for Release
+        run: |
+          cd dist
+          tar -czf AviNLU-Linux-x64.tar.gz AviNLU-Linux
+          cd ..
 
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: dist/AviNLU-Linux-x64.tar.gz
           generate_release_notes: true
-          body: |
-            ## Server Application ${{ github.ref_name }}
-            
-            ### Downloads
-            - **Windows**: AviNLU-Windows-x64.zip
-            - **Linux**: AviNLU-Linux-x64.tar.gz
-            - **macOS**: AviNLU-macOS-x64.tar.gz
-            
-            ### Installation
-            1. Download the appropriate file for your operating system
-            2. Extract the archive
-            3. Run the executable
-            4. Server will start on http://localhost:1178
-            
-            ### What's Included
-            - Precompiled executable with all dependencies
-            - Numpy compatibility patches applied
-            - Language entities for PT_PT and EN
-            - Features directory structure
-            
-            ### Notes
-            - Python is NOT required to run these executables
-            - All dependencies are bundled
-            - Port 1178 must be available
-            
-            ### Changelog
-            See below for detailed changes in this release.
-          files: |
-            artifacts/AviNLU-Windows-x64/*.zip
-            artifacts/AviNLU-Linux-x64/*.tar.gz
-            artifacts/AviNLU-macOS-x64/*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body: "Server Application ${{ github.ref_name }} build for Linux x64."
 
-      #- name: Upload Windows Build
-      #  uses: actions/upload-release-asset@v1
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #  with:
-      #    upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #    asset_path: artifacts/AviNLU-Windows-x64/AviNLU-Windows-x64.exe.zip
-      #    asset_name: AviNLU-Windows-x64.zip
-      #    asset_content_type: application/zip
+  sync-client:
+    name: Generate and Sync Rust Client
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Server (for scripts/context)
+        uses: actions/checkout@v4
 
-      - name: Upload Linux Build
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Built Binary
+        uses: actions/download-artifact@v4
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/AviNLU-Linux-x64/AviNLU-Linux-x64.tar.gz
-          asset_name: AviNLU-Linux-x64.tar.gz
-          asset_content_type: application/gzip
+          name: linux-binary
+          path: dist/
 
-      #- name: Upload macOS Build
-      #  uses: actions/upload-release-asset@v1
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #  with:
-      #    upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #    asset_path: artifacts/AviNLU-macOS-x64/AviNLU-macOS-x64.tar.gz
-      #    asset_name: AviNLU-macOS-x64.tar.gz
-      #    asset_content_type: application/gzip
+      - name: Generate OpenAPI JSON
+        run: |
+          chmod +x dist/AviNLU-Linux
+          ./dist/AviNLU-Linux openapi .
+
+      - name: Generate Rust Client
+        uses: openapi-generators/openapitools-generator-action@v1
+        with:
+          generator: rust
+          openapi-file: openapi.json
+          command-args: >
+            -o ./generated-client 
+            --additional-properties=packageName=avi_nlu_client,withSerde=true,useRustls=true
+
+      - name: Push to Client Repository
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.CLIENT_REPO_TOKEN }}
+        run: |
+          cd generated-client
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Sync Rust client with Server ${{ github.ref_name }}"
+          git push --force https://x-access-token:${{ secrets.CLIENT_REPO_TOKEN }}@github.com/${{ github.repository_owner }}/avi-nlu-client.git HEAD:main

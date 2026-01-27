@@ -75,6 +75,13 @@ async def alive(intentKit=Depends(get_kit)) -> Alive:
     return Alive(on=True, intent_kit=intentKit.loaded, version=__version__)
 
 
+def openapi(path: str):
+    openapi_schema = app.openapi()
+
+    with open(f"{path}/openapi.json", "w") as f:
+        json.dump(openapi_schema, f, indent=2)
+
+
 def serve(
     lang: Lang = Lang.EN, host: str = "0.0.0.0", port: int = 1178, verbose: bool = False
 ):

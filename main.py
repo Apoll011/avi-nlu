@@ -2,7 +2,7 @@ import typer
 import os
 from src.models import Lang
 from src.config import __version__, engine_base_path
-from src.app import serve as api_serve
+from src.app import serve as api_serve, openapi as op
 from typing_extensions import Annotated
 from src.ui import AVI_BANNER
 from click import clear
@@ -14,9 +14,21 @@ cli = typer.Typer(add_completion=False)
 
 
 @cli.command()
+def openapi(
+    path: Annotated[
+        str, typer.Argument(help="the path to save the openapi.json")
+    ] = ".",
+):
+    """
+    Save the correspondent openapi.json on a specified path
+    """
+    op(path)
+
+
+@cli.command()
 def serve(
     lang: Lang = Lang.EN,
-    host: Annotated[str, typer.Argument(help="THe host IP.")] = "0.0.0.0",
+    host: Annotated[str, typer.Argument(help="The host IP.")] = "0.0.0.0",
     port: Annotated[
         int,
         typer.Argument(
