@@ -51,9 +51,12 @@ class IntentKit:
     def parse(self, text):
         if not self.loaded or not isinstance(self.engine, SnipsNLUEngine):
             raise AttributeError("Intent recognition Engine not loaded")
-        parsed: dict = self.engine.parse(text)
+        parsed = self.engine.parse(text)
+        processor = Processor.ENGINE
 
         if parsed["intent"]["probability"] < 0.25 or parsed["intent"] is None:
-            return generate(text), Processor.AI
+            parsed, processor = generate(text), Processor.AI
 
-        return parsed, Processor.ENGINE
+        parsed["kind"] = "nlu" if processor == Processor.ENGINE else "action_plan"
+
+        return parsed, processor
