@@ -57,4 +57,6 @@ class IntentKit:
         if parsed["intent"]["probability"] < 0.25 or parsed["intent"] is None:
             parsed, processor = generate(text), Processor.AI
 
+        parsed["kind"] = "nlu" if processor == Processor.ENGINE else "action_plan"
+
         return parsed, processor
